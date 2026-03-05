@@ -26,6 +26,7 @@ export default function SatelliteTable({ satellites, loading, onSelect, selected
             <th>Name</th>
             <th>Status</th>
             <th>Altitude (km)</th>
+            <th>Apogee (km)</th>
             <th>Perigee (km)</th>
             <th>Inclination (°)</th>
             <th>Period (min)</th>
@@ -48,6 +49,7 @@ export default function SatelliteTable({ satellites, loading, onSelect, selected
                 </span>
               </td>
               <td className="mono">{sat.altitude_km ?? "—"}</td>
+              <td className="mono">{sat.apogee_km ?? "—"}</td>
               <td className="mono">{sat.perigee_km ?? "—"}</td>
               <td className="mono">{sat.inclination ?? "—"}</td>
               <td className="mono">{sat.period_min ?? "—"}</td>

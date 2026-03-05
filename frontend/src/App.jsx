@@ -20,6 +20,8 @@ export default function App() {
   const [boosterLoading, setBoosterLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("launch_date");
+  const [sortDir, setSortDir] = useState("desc");
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -33,6 +35,8 @@ export default function App() {
         offset: page * PER_PAGE,
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        sort_by: sortBy,
+        sort_dir: sortDir,
       });
       const res = await fetch(`${API}/satellites?${params}`);
       const json = await res.json();
@@ -43,7 +47,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, sortBy, sortDir, page]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -170,6 +174,26 @@ export default function App() {
                     {s === "" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                   </button>
                 ))}
+              </div>
+
+              <div className="sort-wrap">
+                <label className="sort-label" htmlFor="sat-sort">Sort</label>
+                <select
+                  id="sat-sort"
+                  className="sort-select"
+                  value={`${sortBy}:${sortDir}`}
+                  onChange={(e) => {
+                    const [nextBy, nextDir] = e.target.value.split(":");
+                    setSortBy(nextBy);
+                    setSortDir(nextDir);
+                    setPage(0);
+                  }}
+                >
+                  <option value="launch_date:desc">Latest Launch Date</option>
+                  <option value="norad_id:desc">Latest NORAD ID</option>
+                  <option value="name:asc">Name A-Z</option>
+                  <option value="name:desc">Name Z-A</option>
+                </select>
               </div>
 
               <div className="result-count">

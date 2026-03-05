@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from typing import Optional, Literal
 from html import unescape
 import re
 import requests
@@ -34,6 +34,8 @@ def list_satellites(
     status: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     shell: Optional[int] = Query(None),
+    sort_by: Literal["launch_date", "norad_id", "name"] = Query("launch_date"),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
     limit: int = Query(100, le=500),
     offset: int = Query(0),
 ):
@@ -53,10 +55,17 @@ def list_satellites(
         params.append(search)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    order_dir = "ASC" if sort_dir == "asc" else "DESC"
+    if sort_by == "launch_date":
+        order_clause = f"launch_date {order_dir} NULLS LAST, norad_id DESC"
+    elif sort_by == "name":
+        order_clause = f"name {order_dir}, norad_id DESC"
+    else:
+        order_clause = f"norad_id {order_dir}"
 
     # Get paginated rows
     rows = fetchall(
-        f"SELECT * FROM satellites {where} ORDER BY norad_id LIMIT %s OFFSET %s",
+        f"SELECT * FROM satellites {where} ORDER BY {order_clause} LIMIT %s OFFSET %s",
         params + [limit, offset],
     )
 
@@ -464,6 +473,50 @@ def _fetch_spacex_launches_listing(limit: int = 10) -> list[dict]:
         return []
 
 
+def _fetch_rocketlaunchlive_upcoming(limit: int = 5, vehicle_images: Optional[dict] = None) -> list[dict]:
+    url = f"https://fdo.rocketlaunch.live/json/launches/next/{limit}"
+    vehicle_images = vehicle_images or {}
+    try:
+        resp = requests.get(url, timeout=20)
+        if resp.status_code != 200:
+            return []
+        payload = resp.json()
+        launches = payload.get("result") or []
+        mapped = []
+        for item in launches:
+            provider = (item.get("provider") or {}).get("name")
+            vehicle = (item.get("vehicle") or {}).get("name")
+            rocket_name = " - ".join([p for p in [provider, vehicle] if p]) or vehicle or provider
+            rocket_upper = (rocket_name or "").upper()
+            image_url = (
+                vehicle_images.get("falconheavy")
+                if "FALCON HEAVY" in rocket_upper
+                else vehicle_images.get("starship")
+                if "STARSHIP" in rocket_upper
+                else vehicle_images.get("dragon")
+                if "DRAGON" in rocket_upper
+                else vehicle_images.get("falcon9")
+            )
+            pad = item.get("pad") or {}
+            location = (pad.get("location") or {}).get("name")
+            source_url = f"https://rocketlaunch.live/launch/{item.get('slug')}" if item.get("slug") else None
+            mapped.append(
+                {
+                    "name": item.get("name"),
+                    "date_utc": item.get("win_open") or item.get("t0") or item.get("sort_date"),
+                    "success": None,
+                    "rocket_name": rocket_name,
+                    "site_url": source_url,
+                    "site_summary": f'Pad: {pad.get("name") or "Unknown"} · Site: {location or "Unknown"}',
+                    "source": "rocketlaunch.live/launches/next",
+                    "image_url": image_url,
+                }
+            )
+        return mapped
+    except requests.RequestException:
+        return []
+
+
 def _fetch_falcon9_vehicle_page_stats() -> Optional[dict]:
     url = "https://www.spacex.com/vehicles/falcon-9/"
     try:
@@ -505,10 +558,25 @@ def _fetch_falcon9_vehicle_page_stats() -> Optional[dict]:
 def _fetch_spacex_rocket_stats():
     stats = _fetch_spacexnow_stats()
     past = _parse_spacexnow_missions("https://spacexnow.com/past", limit=120, source_label="spacexnow/past")
-    upcoming = _parse_spacexnow_missions(
-        "https://spacexnow.com/upcoming", limit=40, source_label="spacexnow/upcoming"
-    )
     vehicle_images = _fetch_vehicle_images()
+    upcoming_launches = _fetch_rocketlaunchlive_upcoming(limit=5, vehicle_images=vehicle_images)
+    if not upcoming_launches:
+        fallback = _parse_spacexnow_missions(
+            "https://spacexnow.com/upcoming", limit=40, source_label="spacexnow/upcoming"
+        )
+        upcoming_launches = [
+            {
+                "name": mission.get("name"),
+                "date_utc": None,
+                "success": None,
+                "rocket_name": mission.get("rocket_line"),
+                "site_url": mission.get("source_url"),
+                "site_summary": f'Landing: {mission.get("landing_site") or "Unknown"} · Orbit: {mission.get("orbit") or "Unknown"}',
+                "source": mission.get("source"),
+                "image_url": vehicle_images.get("falcon9"),
+            }
+            for mission in fallback[:10]
+        ]
 
     f9_completed = stats.get("falcon9_successful_missions")
     f9_total = stats.get("falcon9_total_missions")
@@ -569,7 +637,7 @@ def _fetch_spacex_rocket_stats():
             "total_core_flights": f9_total,
             "reused_core_flights": total_reflights,
             "reusability_rate": _pct(total_reflights or 0, f9_total or 0),
-            "upcoming_missions": len(upcoming),
+            "upcoming_missions": len(upcoming_launches),
         },
         "falcon9": {
             "completed_missions": f9_completed,
@@ -593,9 +661,13 @@ def _fetch_spacex_rocket_stats():
                 "days_since_latest_launch": None,
                 "is_stale": False,
             },
+            "upcoming_launches": {
+                "source": upcoming_launches[0]["source"] if upcoming_launches else "unknown",
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
+            },
         },
         "recent_launches": recent_launches,
-        "upcoming_launches": upcoming[:10],
+        "upcoming_launches": upcoming_launches,
         "rockets": rockets,
         "vehicle_images": vehicle_images,
     }

@@ -23,7 +23,9 @@ export default function HomeLanding({
   const capsules = boosterIntel?.overall?.total_capsules;
   const activeStarlink = stats?.active;
   const recent = rocketStats?.recent_launches || [];
+  const upcoming = rocketStats?.upcoming_launches || [];
   const launchesSource = rocketStats?.data_sources?.launches_list?.source || "unknown";
+  const upcomingSource = rocketStats?.data_sources?.upcoming_launches?.source || "unknown";
 
   return (
     <section className="home-landing">
@@ -97,6 +99,32 @@ export default function HomeLanding({
                 {l.site_url && (
                   <a className="home-link mono" href={l.site_url} target="_blank" rel="noreferrer">
                     spacex.com launch page
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="infra-panel">
+          <h3>Next Launches</h3>
+          <div className="source-note">
+            <span className="mono">Source: {upcomingSource}</span>
+          </div>
+          <div className="infra-list">
+            {upcoming.slice(0, 5).map((l) => (
+              <div key={`${l.name}-${l.date_utc}`} className="infra-item">
+                {l.image_url && (
+                  <img className="launch-thumb" src={l.image_url} alt={l.name || "Launch"} loading="lazy" />
+                )}
+                <div className="name-cell">{l.name}</div>
+                <div className="mono dim">
+                  {l.date_utc?.slice(0, 10)} · {l.rocket_name || "Unknown rocket"}
+                </div>
+                {l.site_summary && <div className="home-summary">{l.site_summary}</div>}
+                {l.site_url && (
+                  <a className="home-link mono" href={l.site_url} target="_blank" rel="noreferrer">
+                    rocketlaunch.live details
                   </a>
                 )}
               </div>
