@@ -61,6 +61,36 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .stat-value { font-family: var(--font-mono); font-size: 18px; color: #fff; font-weight: 700; }
 .stat-label { font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; margin-top: 2px; }
 
+/* === ROCKET SECTION === */
+.rocket-section { margin-bottom: 24px; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.section-head h2 {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+}
+.rocket-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.rocket-panel.skeleton {
+  min-height: 90px;
+  background: linear-gradient(90deg, var(--bg3) 0%, var(--bg2) 50%, var(--bg3) 100%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
 /* === CONTROLS === */
 .controls {
   display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
@@ -181,4 +211,5 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   .detail-section:nth-child(odd) { border-right: none; }
   .stats-bar { gap: 8px; }
   .stat-card { min-width: 120px; }
+  .section-head { flex-direction: column; align-items: flex-start; }
 }

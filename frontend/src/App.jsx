@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import SatelliteTable from "./components/SatelliteTable";
 import SatelliteDetail from "./components/SatelliteDetail";
 import StatsBar from "./components/StatsBar";
+import RocketStats from "./components/RocketStats";
 import "./index.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -10,6 +11,8 @@ export default function App() {
   const [satellites, setSatellites] = useState([]);
   const [stats, setStats] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [rocketStats, setRocketStats] = useState(null);
+  const [rocketLoading, setRocketLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -46,7 +49,21 @@ export default function App() {
     }
   }, []);
 
+  const fetchRocketStats = useCallback(async () => {
+    setRocketLoading(true);
+    try {
+      const res = await fetch(`${API}/spacex/rockets/stats`);
+      setRocketStats(await res.json());
+    } catch (e) {
+      console.error("Failed to fetch SpaceX rocket stats:", e);
+      setRocketStats(null);
+    } finally {
+      setRocketLoading(false);
+    }
+  }, []);
+
   useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchRocketStats(); }, [fetchRocketStats]);
   useEffect(() => {
     const timeout = setTimeout(fetchSatellites, search ? 400 : 0);
     return () => clearTimeout(timeout);
@@ -72,6 +89,7 @@ export default function App() {
 
       <main className="main">
         <StatsBar stats={stats} />
+        <RocketStats data={rocketStats} loading={rocketLoading} />
 
         <div className="controls">
           <div className="search-wrap">

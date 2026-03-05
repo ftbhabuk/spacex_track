@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+import requests
 from database import fetchall, fetchone
 
 app = FastAPI(title="Starlink Tracker API", version="1.0.0")
@@ -11,6 +13,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+SPACEX_API = "https://api.spacexdata.com/v4"
+SPACEX_CACHE_TTL = timedelta(minutes=30)
+_spacex_cache_data = None
+_spacex_cache_time = None
 
 
 @app.get("/")
@@ -103,3 +110,160 @@ def get_stats():
         """
     )
     return dict(row)
+
+
+def _pct(part: int, total: int) -> Optional[float]:
+    if not total:
+        return None
+    return round((part / total) * 100, 1)
+
+
+def _fetch_spacex_rocket_stats():
+    rockets_resp = requests.get(f"{SPACEX_API}/rockets", timeout=30)
+    launches_resp = requests.post(
+        f"{SPACEX_API}/launches/query",
+        json={
+            "query": {"upcoming": False},
+            "options": {
+                "pagination": False,
+                "sort": {"date_utc": "desc"},
+                "select": ["name", "date_utc", "success", "rocket", "cores"],
+            },
+        },
+        timeout=30,
+    )
+    rockets_resp.raise_for_status()
+    launches_resp.raise_for_status()
+
+    rockets = rockets_resp.json()
+    launches = launches_resp.json().get("docs", [])
+    by_rocket = {r["id"]: r for r in rockets}
+
+    rocket_stats = {
+        r["id"]: {
+            "rocket_id": r["id"],
+            "rocket_name": r["name"],
+            "first_flight": r.get("first_flight"),
+            "active": r.get("active"),
+            "stages": r.get("stages"),
+            "boosters": r.get("boosters"),
+            "cost_per_launch": r.get("cost_per_launch"),
+            "success_rate_pct": r.get("success_rate_pct"),
+            "wikipedia": r.get("wikipedia"),
+            "total_launches": 0,
+            "successful_launches": 0,
+            "failed_launches": 0,
+            "total_core_flights": 0,
+            "booster_landings": 0,
+            "reused_core_flights": 0,
+            "missions": [],
+        }
+        for r in rockets
+    }
+
+    total_landings = 0
+    total_core_flights = 0
+    total_reused_core_flights = 0
+    total_successful = 0
+
+    for launch in launches:
+        rocket_id = launch.get("rocket")
+        if rocket_id not in by_rocket:
+            continue
+
+        stats = rocket_stats[rocket_id]
+        stats["total_launches"] += 1
+
+        if launch.get("success") is True:
+            stats["successful_launches"] += 1
+            total_successful += 1
+        elif launch.get("success") is False:
+            stats["failed_launches"] += 1
+
+        stats["missions"].append(
+            {
+                "name": launch.get("name"),
+                "date_utc": launch.get("date_utc"),
+                "success": launch.get("success"),
+            }
+        )
+
+        for core in launch.get("cores") or []:
+            stats["total_core_flights"] += 1
+            total_core_flights += 1
+
+            if core.get("landing_success") is True:
+                stats["booster_landings"] += 1
+                total_landings += 1
+
+            if (core.get("flight") or 0) > 1:
+                stats["reused_core_flights"] += 1
+                total_reused_core_flights += 1
+
+    rocket_list = []
+    for r in rocket_stats.values():
+        recent_missions = sorted(
+            r["missions"],
+            key=lambda m: m.get("date_utc") or "",
+            reverse=True,
+        )[:8]
+        rocket_list.append(
+            {
+                **r,
+                "mission_count": len(r["missions"]),
+                "recent_missions": recent_missions,
+                "launch_success_rate": _pct(
+                    r["successful_launches"], r["total_launches"]
+                ),
+                "landing_rate": _pct(r["booster_landings"], r["total_core_flights"]),
+                "reusability_rate": _pct(
+                    r["reused_core_flights"], r["total_core_flights"]
+                ),
+            }
+        )
+
+    rocket_list.sort(key=lambda r: r["mission_count"], reverse=True)
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "overall": {
+            "total_rockets": len(rockets),
+            "active_rockets": sum(1 for r in rockets if r.get("active")),
+            "total_launches": len(launches),
+            "successful_launches": total_successful,
+            "launch_success_rate": _pct(total_successful, len(launches)),
+            "booster_landings": total_landings,
+            "landing_rate": _pct(total_landings, total_core_flights),
+            "total_core_flights": total_core_flights,
+            "reused_core_flights": total_reused_core_flights,
+            "reusability_rate": _pct(total_reused_core_flights, total_core_flights),
+        },
+        "rockets": rocket_list,
+    }
+
+
+@app.get("/spacex/rockets/stats")
+def get_spacex_rocket_stats(refresh: bool = Query(False)):
+    global _spacex_cache_data, _spacex_cache_time
+
+    now = datetime.now(timezone.utc)
+    cache_valid = (
+        _spacex_cache_data is not None
+        and _spacex_cache_time is not None
+        and (now - _spacex_cache_time) < SPACEX_CACHE_TTL
+    )
+
+    if not refresh and cache_valid:
+        return _spacex_cache_data
+
+    try:
+        data = _fetch_spacex_rocket_stats()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not fetch SpaceX data: {exc}",
+        ) from exc
+
+    _spacex_cache_data = data
+    _spacex_cache_time = now
+    return data

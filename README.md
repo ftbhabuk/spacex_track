@@ -72,8 +72,8 @@ SPACETRACK_PASS=yourpassword
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -88,7 +88,13 @@ Pulls all ~7,000+ Starlink satellites from CelesTrak, parses orbital elements fr
 ### 5. Start the API
 
 ```bash
-uvicorn main:app --reload --port 8000
+source .venv/bin/activate
+uvicorn main:app --reload
+```
+
+Or from backend directory with venv already activated:
+```bash
+uvicorn main:app --reload
 ```
 
 Interactive API docs at: http://localhost:8000/docs
@@ -111,6 +117,27 @@ Frontend runs at: http://localhost:5173
 
 ---
 
+## 🏃 Running the App
+
+You'll need **two terminals**:
+
+**Terminal 1 — Backend:**
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn main:app --reload
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+Then open http://localhost:5173 in your browser.
+
+---
+
 ## 🔌 API Endpoints
 
 | Endpoint | Description |
@@ -121,6 +148,7 @@ Frontend runs at: http://localhost:5173
 | `GET /satellites/{norad_id}` | Single satellite full detail |
 | `GET /satellites/{norad_id}/history` | Altitude history (last 90 records) |
 | `GET /stats` | Aggregate counts + avg altitude |
+| `GET /spacex/rockets/stats` | SpaceX rocket analytics: launches, landings, reusability, missions |
 
 ---
 
