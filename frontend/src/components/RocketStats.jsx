@@ -14,10 +14,10 @@ export default function RocketStats({ data, loading }) {
   const rockets = data.rockets || [];
 
   const cards = [
-    { label: "Total Launches", value: overall.total_launches?.toLocaleString(), icon: "🚀" },
-    { label: "Booster Landings", value: overall.booster_landings?.toLocaleString(), icon: "🛬" },
-    { label: "Core Reusability", value: pct(overall.reusability_rate), icon: "♻️" },
-    { label: "Launch Success", value: pct(overall.launch_success_rate), icon: "✅" },
+    { label: "Total Launches", value: overall.total_launches?.toLocaleString() },
+    { label: "Booster Landings", value: overall.booster_landings?.toLocaleString() },
+    { label: "Core Reusability", value: pct(overall.reusability_rate) },
+    { label: "Launch Success", value: pct(overall.launch_success_rate) },
   ];
 
   return (
@@ -30,7 +30,6 @@ export default function RocketStats({ data, loading }) {
       <div className="stats-bar">
         {cards.map((c) => (
           <div key={c.label} className="stat-card">
-            <span className="stat-icon">{c.icon}</span>
             <div>
               <div className="stat-value">{c.value ?? "—"}</div>
               <div className="stat-label">{c.label}</div>

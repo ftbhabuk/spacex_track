@@ -149,6 +149,7 @@ Then open http://localhost:5173 in your browser.
 | `GET /satellites/{norad_id}/history` | Altitude history (last 90 records) |
 | `GET /stats` | Aggregate counts + avg altitude |
 | `GET /spacex/rockets/stats` | SpaceX rocket analytics: launches, landings, reusability, missions |
+| `GET /spacex/boosters/intel` | Booster-level intelligence + mission history + landpads + droneships |
 
 ---
 
