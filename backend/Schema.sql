@@ -63,5 +63,60 @@ CREATE TRIGGER satellites_updated_at
     BEFORE UPDATE ON satellites
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- ==============================
+-- SpaceX assets (no scraping)
+-- ==============================
+CREATE TABLE IF NOT EXISTS spacex_boosters (
+    serial               TEXT PRIMARY KEY,
+    vehicle              TEXT NOT NULL,
+    version              TEXT,
+    status               TEXT NOT NULL,
+    flights              INTEGER NOT NULL DEFAULT 0,
+    comment              TEXT,
+    landings_success     INTEGER NOT NULL DEFAULT 0,
+    landings_attempts    INTEGER NOT NULL DEFAULT 0,
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS spacex_booster_missions (
+    id                   BIGSERIAL PRIMARY KEY,
+    booster_serial       TEXT NOT NULL REFERENCES spacex_boosters(serial) ON DELETE CASCADE,
+    mission_name         TEXT NOT NULL,
+    mission_date         DATE,
+    landing_site         TEXT,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_spacex_booster_missions_serial
+ON spacex_booster_missions(booster_serial);
+
+CREATE TABLE IF NOT EXISTS spacex_capsules (
+    capsule_id           TEXT PRIMARY KEY,
+    version              TEXT,
+    status               TEXT NOT NULL,
+    flights              INTEGER NOT NULL DEFAULT 0,
+    comment              TEXT,
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS spacex_capsule_missions (
+    id                   BIGSERIAL PRIMARY KEY,
+    capsule_id           TEXT NOT NULL REFERENCES spacex_capsules(capsule_id) ON DELETE CASCADE,
+    mission_name         TEXT NOT NULL,
+    mission_date         DATE,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_spacex_capsule_missions_capsule
+ON spacex_capsule_missions(capsule_id);
+
+CREATE TABLE IF NOT EXISTS spacex_landing_sites (
+    site_id              TEXT PRIMARY KEY,
+    display_name         TEXT NOT NULL,
+    landings_success     INTEGER NOT NULL DEFAULT 0,
+    landings_attempts    INTEGER NOT NULL DEFAULT 0,
+    additional_info      TEXT
+);
+
 -- Quick sanity check
 SELECT 'Schema created successfully ✓' AS status;
