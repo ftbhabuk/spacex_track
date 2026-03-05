@@ -330,7 +330,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 
 .infra-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
   margin-top: 12px;
 }

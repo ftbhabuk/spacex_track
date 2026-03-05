@@ -20,6 +20,7 @@ export default function HomeLanding({
   const boosters = boosterIntel?.overall?.total_boosters;
   const maxReuse = boosterIntel?.overall?.max_reuse_count;
   const retired = boosterIntel?.overall?.retired_boosters;
+  const capsules = boosterIntel?.overall?.total_capsules;
   const activeStarlink = stats?.active;
   const recent = rocketStats?.recent_launches || [];
   const launchesSource = rocketStats?.data_sources?.launches_list?.source || "unknown";
@@ -67,6 +68,10 @@ export default function HomeLanding({
           <div className="hero-card">
             <div className="hero-value">{loading ? "..." : num(retired)}</div>
             <div className="hero-label">Retired/Lost Boosters</div>
+          </div>
+          <div className="hero-card">
+            <div className="hero-value">{loading ? "..." : num(capsules)}</div>
+            <div className="hero-label">Tracked Capsules</div>
           </div>
         </div>
       </div>

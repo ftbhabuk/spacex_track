@@ -28,6 +28,7 @@ export default function BoosterDashboard({ data, loading }) {
       const matchSearch =
         !q ||
         String(b.serial || "").toLowerCase().includes(q) ||
+        String(b.display_name || "").toLowerCase().includes(q) ||
         String(b.status || "").toLowerCase().includes(q) ||
         String(b.type || "").toLowerCase().includes(q);
 
@@ -124,7 +125,10 @@ export default function BoosterDashboard({ data, loading }) {
                 <td className="name-cell">
                   <div className="booster-cell">
                     {b.image_url && <img className="booster-thumb" src={b.image_url} alt={b.serial || "Booster"} loading="lazy" />}
-                    <span>{b.serial || "Unknown"}</span>
+                    <div>
+                      <div>{b.display_name || b.serial || "Unknown"}</div>
+                      <div className="mono dim">{b.serial || "—"}</div>
+                    </div>
                   </div>
                 </td>
                 <td className="mono dim">{b.status || "unknown"}</td>
@@ -165,6 +169,28 @@ export default function BoosterDashboard({ data, loading }) {
             ))}
           </div>
         </section>
+
+        <section className="infra-panel">
+          <h3>Capsules</h3>
+          <div className="infra-list">
+            {(data.capsules || []).map((capsule) => (
+              <div key={capsule.capsule_id} className="infra-item">
+                <div className="booster-cell">
+                  {capsule.image_url && (
+                    <img className="booster-thumb" src={capsule.image_url} alt={capsule.capsule_id} loading="lazy" />
+                  )}
+                  <div>
+                    <div className="name-cell">{capsule.name || capsule.capsule_id}</div>
+                    <div className="mono dim">{capsule.capsule_id} · {capsule.status || "unknown"}</div>
+                  </div>
+                </div>
+                <div className="mono">
+                  Missions: {capsule.missions_reported ?? "—"} · Reuses: {capsule.reuses_reported ?? "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {selected && (
@@ -182,9 +208,9 @@ function BoosterDetail({ booster, onClose }) {
       <div className="detail-panel">
         <div className="detail-header">
           <div>
-            <div className="detail-title">Booster {booster.serial || "Unknown"}</div>
+            <div className="detail-title">Booster {booster.display_name || booster.serial || "Unknown"}</div>
             <div className="detail-subtitle">
-              Status: {booster.status || "unknown"} · {booster.is_retired ? "Retired" : "Operational/Tracked"}
+              Serial: {booster.serial || "—"} · Status: {booster.status || "unknown"} · {booster.is_retired ? "Retired" : "Operational/Tracked"}
             </div>
           </div>
           <button className="close-btn" onClick={onClose}>✕</button>

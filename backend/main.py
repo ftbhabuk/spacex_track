@@ -294,6 +294,96 @@ def _parse_spacexnow_missions(url: str, limit: int = 200, source_label: str = "s
     return missions
 
 
+def _base_booster_serial(serial: Optional[str]) -> Optional[str]:
+    if not serial:
+        return None
+    m = re.search(r"(B[0-9]{4})", serial.upper())
+    return m.group(1) if m else None
+
+
+def _status_from_block_text(text: str) -> str:
+    lowered = text.lower()
+    if any(token in lowered for token in ["destroyed", "lost", "expended"]):
+        return "lost"
+    if "retired" in lowered:
+        return "retired"
+    if "inactive" in lowered:
+        return "inactive"
+    if "active" in lowered:
+        return "active"
+    return "tracked"
+
+
+def _collect_entity_blocks(lines: list[str], id_pattern: str, max_block_lines: int = 14) -> dict[str, list[str]]:
+    blocks = {}
+    current_id = None
+    current_lines = []
+    regex = re.compile(id_pattern, re.IGNORECASE)
+    for line in lines:
+        m = regex.search(line)
+        if m:
+            if current_id and current_lines:
+                blocks[current_id] = current_lines
+            current_id = m.group(1).upper()
+            current_lines = [line]
+            continue
+        if current_id and len(current_lines) < max_block_lines:
+            current_lines.append(line)
+    if current_id and current_lines:
+        blocks[current_id] = current_lines
+    return blocks
+
+
+def _parse_spacexnow_boosters(url: str = "https://spacexnow.com/boosters") -> list[dict]:
+    lines = _fetch_text_lines(url)
+    blocks = _collect_entity_blocks(lines, r"\b(B[0-9]{4}(?:\.[0-9]+)?)\b")
+    boosters = []
+    for serial_raw, block_lines in blocks.items():
+        block_text = " ".join(block_lines)
+        base_serial = _base_booster_serial(serial_raw)
+        launches = _extract_first_int(next((l for l in block_lines if "launch" in l.lower()), ""))
+        landings = _extract_first_int(next((l for l in block_lines if "landing" in l.lower()), ""))
+        reflights = _extract_first_int(next((l for l in block_lines if "reflight" in l.lower() or "reuse" in l.lower()), ""))
+        boosters.append(
+            {
+                "serial": serial_raw,
+                "base_serial": base_serial,
+                "display_name": base_serial or serial_raw,
+                "status": _status_from_block_text(block_text),
+                "launches_reported": launches,
+                "landings_reported": landings,
+                "reflights_reported": reflights,
+                "raw_lines": block_lines[:10],
+                "source": "spacexnow.com/boosters",
+                "source_url": url,
+            }
+        )
+    return boosters
+
+
+def _parse_spacexnow_capsules(url: str = "https://spacexnow.com/capsules") -> list[dict]:
+    lines = _fetch_text_lines(url)
+    blocks = _collect_entity_blocks(lines, r"\b(C[0-9]{3})\b")
+    capsules = []
+    for capsule_id, block_lines in blocks.items():
+        block_text = " ".join(block_lines)
+        capsules.append(
+            {
+                "capsule_id": capsule_id,
+                "name": next((l for l in block_lines if "dragon" in l.lower()), capsule_id),
+                "status": _status_from_block_text(block_text),
+                "type": "Dragon Capsule",
+                "missions_reported": _extract_first_int(next((l for l in block_lines if "mission" in l.lower()), "")),
+                "reuses_reported": _extract_first_int(next((l for l in block_lines if "reuse" in l.lower() or "reflight" in l.lower()), "")),
+                "water_landings_reported": _extract_first_int(next((l for l in block_lines if "water landing" in l.lower()), "")),
+                "raw_lines": block_lines[:10],
+                "source": "spacexnow.com/capsules",
+                "source_url": url,
+            }
+        )
+    return capsules
+
+
 def _extract_og_image(url: str) -> Optional[str]:
     try:
         resp = requests.get(url, timeout=12)
@@ -519,11 +609,14 @@ def _is_retired_status(status: Optional[str]) -> bool:
 
 def _fetch_spacex_booster_intel():
     past = _parse_spacexnow_missions("https://spacexnow.com/past", limit=220, source_label="spacexnow/past")
+    boosters_catalog = _parse_spacexnow_boosters("https://spacexnow.com/boosters")
+    capsules_catalog = _parse_spacexnow_capsules("https://spacexnow.com/capsules")
     vehicle_images = _fetch_vehicle_images()
     asds_sites = {"ASOG", "JRTI", "OCISLY", "ASDS"}
     rtls_sites = {"LZ-1", "LZ-2", "LZ-4", "LZ-40"}
     known_landing_sites = asds_sites | rtls_sites
 
+    boosters_catalog_by_base = {b["base_serial"]: b for b in boosters_catalog if b.get("base_serial")}
     boosters_by_serial = {}
     pad_usage = {}
 
@@ -542,6 +635,8 @@ def _fetch_spacex_booster_intel():
         if serial:
             parts = serial.split(".")
             flight_no = int(parts[1]) if len(parts) == 2 and parts[1].isdigit() else None
+            base_serial = _base_booster_serial(serial)
+            meta = boosters_catalog_by_base.get(base_serial)
             block = (
                 5
                 if "F9 B5" in rocket_line.upper() or "FALCON 9 BLOCK 5" in rocket_line.upper()
@@ -552,7 +647,8 @@ def _fetch_spacex_booster_intel():
                 {
                     "core_id": serial,
                     "serial": serial,
-                    "status": "tracked",
+                    "display_name": meta.get("display_name") if meta else base_serial or serial,
+                    "status": meta.get("status") if meta else "tracked",
                     "type": "Falcon 9 Booster",
                     "block": block,
                     "reuse_count": max((flight_no or 1) - 1, 0),
@@ -565,6 +661,7 @@ def _fetch_spacex_booster_intel():
                     "landing_success_count": 0,
                     "mission_history": [],
                     "image_url": vehicle_images.get("falcon9"),
+                    "catalog_meta": meta,
                 },
             )
             stat["launch_count"] += 1
@@ -597,6 +694,34 @@ def _fetch_spacex_booster_intel():
                     "rocket_name": mission.get("rocket_line"),
                 }
             )
+
+    # Include boosters that exist on spacexnow/boosters even if not found in parsed mission feed.
+    for meta in boosters_catalog:
+        base_serial = meta.get("base_serial")
+        if not base_serial:
+            continue
+        exists = any(_base_booster_serial(s) == base_serial for s in boosters_by_serial.keys())
+        if exists:
+            continue
+        boosters_by_serial[base_serial] = {
+            "core_id": base_serial,
+            "serial": base_serial,
+            "display_name": meta.get("display_name") or base_serial,
+            "status": meta.get("status") or "tracked",
+            "type": "Falcon 9 Booster",
+            "block": None,
+            "reuse_count": meta.get("reflights_reported") or 0,
+            "rtls_attempts": 0,
+            "rtls_landings": 0,
+            "asds_attempts": 0,
+            "asds_landings": 0,
+            "last_update": datetime.now(timezone.utc).isoformat(),
+            "launch_count": meta.get("launches_reported") or 0,
+            "landing_success_count": meta.get("landings_reported") or 0,
+            "mission_history": [],
+            "image_url": vehicle_images.get("falcon9"),
+            "catalog_meta": meta,
+        }
 
         if landing_site and landing_site not in {"TBD", "Unknown"}:
             pad = pad_usage.setdefault(
@@ -633,10 +758,11 @@ def _fetch_spacex_booster_intel():
                 **booster,
                 "mission_count": len(missions),
                 "missions_reused": len(reused),
-                "is_retired": False,
+                "is_retired": str(booster.get("status") or "").lower() in {"retired", "lost", "destroyed"},
                 "landing_rate": _pct(total_landings, total_attempts),
                 "recent_missions": missions[:12],
                 "reuse_missions": reused[:12],
+                "source_lines": (booster.get("catalog_meta") or {}).get("raw_lines"),
             }
         )
 
@@ -668,6 +794,14 @@ def _fetch_spacex_booster_intel():
     total_missions = sum(b["mission_count"] for b in boosters)
     total_landings = sum((b.get("asds_landings") or 0) + (b.get("rtls_landings") or 0) for b in boosters)
     max_reuse = max((b.get("reuse_count", 0) for b in boosters), default=0)
+    capsules = []
+    for capsule in capsules_catalog:
+        capsules.append(
+            {
+                **capsule,
+                "image_url": vehicle_images.get("dragon"),
+            }
+        )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -680,18 +814,23 @@ def _fetch_spacex_booster_intel():
             "total_booster_missions": total_missions,
             "total_booster_landings": total_landings,
             "max_reuse_count": max_reuse,
+            "total_capsules": len(capsules),
         },
         "boosters": boosters,
+        "capsules": capsules,
         "landpads": landpads_out,
         "droneships": droneships,
         "data_sources": {
             "boosters_api": {
-                "source": "spacexnow.com/past",
+                "source": "spacexnow.com/boosters + spacexnow.com/past",
                 "latest_launch_date_utc": None,
                 "days_since_latest_launch": None,
                 "is_stale": False,
             },
-            "confidence_note": "Booster lifecycle inferred from mission text feed, not official per-core API.",
+            "capsules": {
+                "source": "spacexnow.com/capsules",
+            },
+            "confidence_note": "Booster lifecycle metrics are merged from spacexnow boosters + mission text feed and may omit hidden fields.",
         },
         "vehicle_images": vehicle_images,
     }
