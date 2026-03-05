@@ -160,7 +160,9 @@ def _fetch_text_lines(url: str) -> list[str]:
     html = resp.text
     html = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", html)
     html = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", html)
-    html = re.sub(r"(?i)</(p|div|li|h1|h2|h3|h4|h5|h6|tr|td|section|article|br)>", "\n", html)
+    html = re.sub(
+        r"(?i)</(p|div|li|h1|h2|h3|h4|h5|h6|tr|td|section|article|br)>", "\n", html
+    )
     text = re.sub(r"(?is)<[^>]+>", " ", html)
     text = unescape(text)
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
@@ -201,7 +203,9 @@ def _fetch_spacexnow_stats() -> dict:
 
     # Robust fallback on full-page text when heading-based line parse changes.
     if f9_success is None:
-        m = re.search(r"Falcon 9\s+([0-9,]+)\s*/\s*([0-9,]+)", text, flags=re.IGNORECASE)
+        m = re.search(
+            r"Falcon 9\s+([0-9,]+)\s*/\s*([0-9,]+)", text, flags=re.IGNORECASE
+        )
         if m:
             f9_success = int(m.group(1).replace(",", ""))
             f9_total = int(m.group(2).replace(",", ""))
@@ -211,7 +215,9 @@ def _fetch_spacexnow_stats() -> dict:
             landed_success = int(m.group(1).replace(",", ""))
             landed_attempts = int(m.group(2).replace(",", ""))
     if reflown_total is None:
-        m = re.search(r"Reflown\s+([0-9,]+)\s+booster reuses", text, flags=re.IGNORECASE)
+        m = re.search(
+            r"Reflown\s+([0-9,]+)\s+booster reuses", text, flags=re.IGNORECASE
+        )
         if m:
             reflown_total = int(m.group(1).replace(",", ""))
 
@@ -228,7 +234,9 @@ def _fetch_spacexnow_stats() -> dict:
     }
 
 
-def _parse_spacexnow_missions(url: str, limit: int = 200, source_label: str = "spacexnow") -> list[dict]:
+def _parse_spacexnow_missions(
+    url: str, limit: int = 200, source_label: str = "spacexnow"
+) -> list[dict]:
     lines = _fetch_text_lines(url)
     missions = []
     ignore_titles = {
@@ -248,8 +256,28 @@ def _parse_spacexnow_missions(url: str, limit: int = 200, source_label: str = "s
         "Download for Android",
         "Download for iOS",
     }
-    orbit_tokens = {"LEO", "GTO", "SSO", "MEO", "GEO", "HEO", "Polar", "Suborbital", "TBD"}
-    landing_tokens = {"ASOG", "JRTI", "OCISLY", "LZ-1", "LZ-2", "LZ-4", "LZ-40", "ASDS", "TBD"}
+    orbit_tokens = {
+        "LEO",
+        "GTO",
+        "SSO",
+        "MEO",
+        "GEO",
+        "HEO",
+        "Polar",
+        "Suborbital",
+        "TBD",
+    }
+    landing_tokens = {
+        "ASOG",
+        "JRTI",
+        "OCISLY",
+        "LZ-1",
+        "LZ-2",
+        "LZ-4",
+        "LZ-40",
+        "ASDS",
+        "TBD",
+    }
 
     idx = 0
     while idx < len(lines):
@@ -323,7 +351,9 @@ def _status_from_block_text(text: str) -> str:
     return "tracked"
 
 
-def _collect_entity_blocks(lines: list[str], id_pattern: str, max_block_lines: int = 14) -> dict[str, list[str]]:
+def _collect_entity_blocks(
+    lines: list[str], id_pattern: str, max_block_lines: int = 14
+) -> dict[str, list[str]]:
     blocks = {}
     current_id = None
     current_lines = []
@@ -343,16 +373,31 @@ def _collect_entity_blocks(lines: list[str], id_pattern: str, max_block_lines: i
     return blocks
 
 
-def _parse_spacexnow_boosters(url: str = "https://spacexnow.com/boosters") -> list[dict]:
+def _parse_spacexnow_boosters(
+    url: str = "https://spacexnow.com/boosters",
+) -> list[dict]:
     lines = _fetch_text_lines(url)
     blocks = _collect_entity_blocks(lines, r"\b(B[0-9]{4}(?:\.[0-9]+)?)\b")
     boosters = []
     for serial_raw, block_lines in blocks.items():
         block_text = " ".join(block_lines)
         base_serial = _base_booster_serial(serial_raw)
-        launches = _extract_first_int(next((l for l in block_lines if "launch" in l.lower()), ""))
-        landings = _extract_first_int(next((l for l in block_lines if "landing" in l.lower()), ""))
-        reflights = _extract_first_int(next((l for l in block_lines if "reflight" in l.lower() or "reuse" in l.lower()), ""))
+        launches = _extract_first_int(
+            next((l for l in block_lines if "launch" in l.lower()), "")
+        )
+        landings = _extract_first_int(
+            next((l for l in block_lines if "landing" in l.lower()), "")
+        )
+        reflights = _extract_first_int(
+            next(
+                (
+                    l
+                    for l in block_lines
+                    if "reflight" in l.lower() or "reuse" in l.lower()
+                ),
+                "",
+            )
+        )
         boosters.append(
             {
                 "serial": serial_raw,
@@ -370,7 +415,9 @@ def _parse_spacexnow_boosters(url: str = "https://spacexnow.com/boosters") -> li
     return boosters
 
 
-def _parse_spacexnow_capsules(url: str = "https://spacexnow.com/capsules") -> list[dict]:
+def _parse_spacexnow_capsules(
+    url: str = "https://spacexnow.com/capsules",
+) -> list[dict]:
     lines = _fetch_text_lines(url)
     blocks = _collect_entity_blocks(lines, r"\b(C[0-9]{3})\b")
     capsules = []
@@ -379,12 +426,27 @@ def _parse_spacexnow_capsules(url: str = "https://spacexnow.com/capsules") -> li
         capsules.append(
             {
                 "capsule_id": capsule_id,
-                "name": next((l for l in block_lines if "dragon" in l.lower()), capsule_id),
+                "name": next(
+                    (l for l in block_lines if "dragon" in l.lower()), capsule_id
+                ),
                 "status": _status_from_block_text(block_text),
                 "type": "Dragon Capsule",
-                "missions_reported": _extract_first_int(next((l for l in block_lines if "mission" in l.lower()), "")),
-                "reuses_reported": _extract_first_int(next((l for l in block_lines if "reuse" in l.lower() or "reflight" in l.lower()), "")),
-                "water_landings_reported": _extract_first_int(next((l for l in block_lines if "water landing" in l.lower()), "")),
+                "missions_reported": _extract_first_int(
+                    next((l for l in block_lines if "mission" in l.lower()), "")
+                ),
+                "reuses_reported": _extract_first_int(
+                    next(
+                        (
+                            l
+                            for l in block_lines
+                            if "reuse" in l.lower() or "reflight" in l.lower()
+                        ),
+                        "",
+                    )
+                ),
+                "water_landings_reported": _extract_first_int(
+                    next((l for l in block_lines if "water landing" in l.lower()), "")
+                ),
                 "raw_lines": block_lines[:10],
                 "source": "spacexnow.com/capsules",
                 "source_url": url,
@@ -440,7 +502,9 @@ def _fetch_spacex_launches_listing(limit: int = 10) -> list[dict]:
         resp = requests.get(url, timeout=12)
         if resp.status_code != 200:
             return []
-        hrefs = re.findall(r'href=["\'](/launches/[^"\']+)["\']', resp.text, flags=re.IGNORECASE)
+        hrefs = re.findall(
+            r'href=["\'](/launches/[^"\']+)["\']', resp.text, flags=re.IGNORECASE
+        )
         items = []
         seen = set()
         for href in hrefs:
@@ -473,7 +537,9 @@ def _fetch_spacex_launches_listing(limit: int = 10) -> list[dict]:
         return []
 
 
-def _fetch_rocketlaunchlive_upcoming(limit: int = 5, vehicle_images: Optional[dict] = None) -> list[dict]:
+def _fetch_rocketlaunchlive_upcoming(
+    limit: int = 5, vehicle_images: Optional[dict] = None
+) -> list[dict]:
     url = f"https://fdo.rocketlaunch.live/json/launches/next/{limit}"
     vehicle_images = vehicle_images or {}
     try:
@@ -486,7 +552,9 @@ def _fetch_rocketlaunchlive_upcoming(limit: int = 5, vehicle_images: Optional[di
         for item in launches:
             provider = (item.get("provider") or {}).get("name")
             vehicle = (item.get("vehicle") or {}).get("name")
-            rocket_name = " - ".join([p for p in [provider, vehicle] if p]) or vehicle or provider
+            rocket_name = (
+                " - ".join([p for p in [provider, vehicle] if p]) or vehicle or provider
+            )
             rocket_upper = (rocket_name or "").upper()
             image_url = (
                 vehicle_images.get("falconheavy")
@@ -499,15 +567,21 @@ def _fetch_rocketlaunchlive_upcoming(limit: int = 5, vehicle_images: Optional[di
             )
             pad = item.get("pad") or {}
             location = (pad.get("location") or {}).get("name")
-            source_url = f"https://rocketlaunch.live/launch/{item.get('slug')}" if item.get("slug") else None
+            source_url = (
+                f"https://rocketlaunch.live/launch/{item.get('slug')}"
+                if item.get("slug")
+                else None
+            )
             mapped.append(
                 {
                     "name": item.get("name"),
-                    "date_utc": item.get("win_open") or item.get("t0") or item.get("sort_date"),
+                    "date_utc": item.get("win_open")
+                    or item.get("t0")
+                    or item.get("sort_date"),
                     "success": None,
                     "rocket_name": rocket_name,
                     "site_url": source_url,
-                    "site_summary": f'Pad: {pad.get("name") or "Unknown"} · Site: {location or "Unknown"}',
+                    "site_summary": f"Pad: {pad.get('name') or 'Unknown'} · Site: {location or 'Unknown'}",
                     "source": "rocketlaunch.live/launches/next",
                     "image_url": image_url,
                 }
@@ -557,9 +631,13 @@ def _fetch_falcon9_vehicle_page_stats() -> Optional[dict]:
 
 def _fetch_spacex_rocket_stats():
     stats = _fetch_spacexnow_stats()
-    past = _parse_spacexnow_missions("https://spacexnow.com/past", limit=120, source_label="spacexnow/past")
+    past = _parse_spacexnow_missions(
+        "https://spacexnow.com/past", limit=120, source_label="spacexnow/past"
+    )
     vehicle_images = _fetch_vehicle_images()
-    upcoming_launches = _fetch_rocketlaunchlive_upcoming(limit=5, vehicle_images=vehicle_images)
+    upcoming_launches = _fetch_rocketlaunchlive_upcoming(
+        limit=5, vehicle_images=vehicle_images
+    )
 
     f9_completed = stats.get("falcon9_successful_missions")
     f9_total = stats.get("falcon9_total_missions")
@@ -586,7 +664,7 @@ def _fetch_spacex_rocket_stats():
                 "success": None,
                 "rocket_name": mission.get("rocket_line"),
                 "site_url": mission.get("source_url"),
-                "site_summary": f'Landing: {mission.get("landing_site") or "Unknown"} · Orbit: {mission.get("orbit") or "Unknown"}',
+                "site_summary": f"Landing: {mission.get('landing_site') or 'Unknown'} · Orbit: {mission.get('orbit') or 'Unknown'}",
                 "source": mission.get("source"),
                 "image_url": image_url,
             }
@@ -645,7 +723,9 @@ def _fetch_spacex_rocket_stats():
                 "is_stale": False,
             },
             "upcoming_launches": {
-                "source": upcoming_launches[0]["source"] if upcoming_launches else "unknown",
+                "source": upcoming_launches[0]["source"]
+                if upcoming_launches
+                else "unknown",
                 "fetched_at": datetime.now(timezone.utc).isoformat(),
             },
         },
@@ -666,182 +746,191 @@ def _fetch_spacex_booster_intel():
     vehicle_images = _fetch_vehicle_images()
     asds_sites = {"ASOG", "JRTI", "OCISLY", "ASDS"}
     rtls_sites = {"LZ-1", "LZ-2", "LZ-4", "LZ-40"}
+
     boosters_rows = fetchall(
-        """
-        SELECT serial, vehicle, version, status, flights, comment, updated_at
-        FROM spacex_boosters
-        ORDER BY flights DESC, serial DESC
-        """
-    )
-    booster_missions_rows = fetchall(
-        """
-        SELECT booster_serial, mission_name, mission_date, landing_site
-        FROM spacex_booster_missions
-        ORDER BY mission_date DESC NULLS LAST, id DESC
-        """
+        "SELECT serial, status, block, flights, landings, asds_landings, rtls_landings, notes, scraped_at FROM boosters ORDER BY flights DESC"
     )
     capsule_rows = fetchall(
-        """
-        SELECT capsule_id, version, status, flights, comment
-        FROM spacex_capsules
-        ORDER BY capsule_id DESC
-        """
+        "SELECT serial, status, type, flights, notes FROM capsules ORDER BY flights DESC"
     )
-    capsule_missions_rows = fetchall(
-        """
-        SELECT capsule_id, mission_name, mission_date
-        FROM spacex_capsule_missions
-        ORDER BY mission_date DESC NULLS LAST, id DESC
-        """
-    )
-    landing_site_rows = fetchall(
-        """
-        SELECT site_id, display_name, landings_success, landings_attempts, additional_info
-        FROM spacex_landing_sites
-        ORDER BY site_id
-        """
-    )
-
-    missions_by_booster = {}
-    for row in booster_missions_rows:
-        missions_by_booster.setdefault(row["booster_serial"], []).append(row)
 
     boosters = []
     for row in boosters_rows:
-        serial = row["serial"]
-        missions_raw = missions_by_booster.get(serial, [])
-        asds_attempts = 0
-        asds_landings = 0
-        rtls_attempts = 0
-        rtls_landings = 0
-        mission_history = []
+        flights = row.get("flights") or 0
+        asds = row.get("asds_landings") or 0
+        rtls = row.get("rtls_landings") or 0
+        landings = row.get("landings") or (asds + rtls)
 
-        for idx, m in enumerate(missions_raw):
-            site = m.get("landing_site")
-            if site in asds_sites:
-                asds_attempts += 1
-                asds_landings += 1
-                landing_type = "ASDS"
-            elif site in rtls_sites:
-                rtls_attempts += 1
-                rtls_landings += 1
-                landing_type = "RTLS"
-            else:
-                landing_type = "Unknown"
+        is_retired = row.get("status") in {"retired", "lost", "destroyed", "expended"}
 
-            date_utc = f"{m['mission_date']}T00:00:00Z" if m.get("mission_date") else None
-            mission_history.append(
-                {
-                    "mission_name": m.get("mission_name"),
-                    "date_utc": date_utc,
-                    "flight_number": None,
-                    "launch_success": None,
-                    "core_flight_number": max((len(missions_raw) - idx), 1),
-                    "landing_success": site in (asds_sites | rtls_sites),
-                    "landing_type": landing_type,
-                    "landpad_id": site,
-                    "landpad_name": site,
-                    "rocket_name": f"{row['vehicle']} {row['version'] or ''}".strip(),
-                }
-            )
-
-        flights = row.get("flights") or len(mission_history)
-        reuse_count = max(flights - 1, 0)
-        landing_success_count = asds_landings + rtls_landings
-        landing_attempt_count = asds_attempts + rtls_attempts
-        reused = [m for m in mission_history if (m.get("core_flight_number") or 0) > 1]
-        block = 5 if "block 5" in str(row.get("version") or "").lower() else None
         boosters.append(
             {
-                "core_id": serial,
-                "serial": serial,
-                "display_name": serial,
-                "status": str(row.get("status") or "unknown").lower(),
-                "type": f"{row.get('vehicle') or 'Falcon'} Booster",
-                "block": block,
-                "reuse_count": reuse_count,
-                "rtls_attempts": rtls_attempts,
-                "rtls_landings": rtls_landings,
-                "asds_attempts": asds_attempts,
-                "asds_landings": asds_landings,
-                "last_update": row.get("updated_at").isoformat() if row.get("updated_at") else None,
+                "core_id": row["serial"],
+                "serial": row["serial"],
+                "display_name": row["serial"],
+                "status": row.get("status") or "unknown",
+                "type": "Falcon Booster",
+                "block": row.get("block"),
+                "reuse_count": max(flights - 1, 0),
+                "rtls_attempts": rtls,
+                "rtls_landings": rtls,
+                "asds_attempts": asds,
+                "asds_landings": asds,
+                "last_update": row.get("scraped_at").isoformat()
+                if row.get("scraped_at")
+                else None,
                 "launch_count": flights,
-                "landing_success_count": landing_success_count,
+                "landing_success_count": landings,
                 "mission_count": flights,
-                "missions_reused": len(reused),
-                "is_retired": _is_retired_status(row.get("status")),
-                "landing_rate": _pct(landing_success_count, landing_attempt_count),
-                "recent_missions": mission_history[:12],
-                "reuse_missions": reused[:12],
+                "missions_reused": max(flights - 1, 0),
+                "is_retired": is_retired,
+                "landing_rate": round((landings / flights * 100), 1)
+                if flights > 0
+                else None,
+                "recent_missions": [],
+                "reuse_missions": [],
                 "source_lines": None,
                 "image_url": vehicle_images.get("falcon9"),
-                "comment": row.get("comment"),
+                "comment": row.get("notes"),
             }
         )
 
-    boosters.sort(key=lambda b: (b["mission_count"], b.get("reuse_count", 0)), reverse=True)
-
-    capsule_missions_by_capsule = {}
-    for row in capsule_missions_rows:
-        capsule_missions_by_capsule.setdefault(row["capsule_id"], []).append(row)
     capsules = []
     for row in capsule_rows:
-        missions = capsule_missions_by_capsule.get(row["capsule_id"], [])
+        flights = row.get("flights") or 0
         capsules.append(
             {
-                "capsule_id": row["capsule_id"],
-                "name": row["capsule_id"],
-                "status": str(row.get("status") or "unknown").lower(),
-                "missions_reported": row.get("flights") or len(missions),
-                "reuses_reported": max((row.get("flights") or len(missions)) - 1, 0),
+                "capsule_id": row["serial"],
+                "name": row["serial"],
+                "status": row.get("status") or "unknown",
+                "missions_reported": flights,
+                "reuses_reported": max(flights - 1, 0),
                 "water_landings_reported": None,
                 "raw_lines": [],
-                "source": "local_postgres_seed",
+                "source": "spacexnow.com scrape",
                 "image_url": vehicle_images.get("dragon"),
-                "comment": row.get("comment"),
+                "comment": row.get("notes"),
             }
         )
 
-    landpads_out = []
-    for row in landing_site_rows:
-        site_id = row["site_id"]
-        site_type = "ASDS" if site_id in asds_sites else "RTLS" if site_id in rtls_sites else "Other"
-        landpads_out.append(
-            {
-                "landpad_id": site_id,
-                "name": site_id,
-                "full_name": row.get("display_name") or site_id,
-                "type": site_type,
-                "locality": None,
-                "region": None,
-                "status": "active",
-                "launches": [],
-                "landing_attempts": row.get("landings_attempts") or 0,
-                "landing_successes": row.get("landings_success") or 0,
-                "boosters": [],
-                "distinct_boosters": 0,
-                "landing_success_rate": _pct(
-                    row.get("landings_success") or 0,
-                    row.get("landings_attempts") or 0,
-                ),
-                "additional_info": row.get("additional_info"),
-            }
-        )
-    landpads_out.sort(key=lambda p: p["landing_attempts"], reverse=True)
+    landpads_out = [
+        {
+            "landpad_id": "LZ-1",
+            "name": "LZ-1",
+            "full_name": "Landing Zone 1",
+            "type": "RTLS",
+            "locality": "Cape Canaveral",
+            "region": "Florida",
+            "status": "active",
+            "launches": [],
+            "landing_attempts": 0,
+            "landing_successes": 0,
+            "boosters": [],
+            "distinct_boosters": 0,
+            "landing_success_rate": None,
+            "additional_info": None,
+        },
+        {
+            "landpad_id": "LZ-2",
+            "name": "LZ-2",
+            "full_name": "Landing Zone 2",
+            "type": "RTLS",
+            "locality": "Cape Canaveral",
+            "region": "Florida",
+            "status": "active",
+            "launches": [],
+            "landing_attempts": 0,
+            "landing_successes": 0,
+            "boosters": [],
+            "distinct_boosters": 0,
+            "landing_success_rate": None,
+            "additional_info": None,
+        },
+        {
+            "landpad_id": "LZ-4",
+            "name": "LZ-4",
+            "full_name": "Landing Zone 4",
+            "type": "RTLS",
+            "locality": "Vandenberg",
+            "region": "California",
+            "status": "active",
+            "launches": [],
+            "landing_attempts": 0,
+            "landing_successes": 0,
+            "boosters": [],
+            "distinct_boosters": 0,
+            "landing_success_rate": None,
+            "additional_info": None,
+        },
+        {
+            "landpad_id": "LZ-40",
+            "name": "LZ-40",
+            "full_name": "Landing Zone 40",
+            "type": "RTLS",
+            "locality": "Cape Canaveral",
+            "region": "Florida",
+            "status": "active",
+            "launches": [],
+            "landing_attempts": 0,
+            "landing_successes": 0,
+            "boosters": [],
+            "distinct_boosters": 0,
+            "landing_success_rate": None,
+            "additional_info": None,
+        },
+    ]
 
     droneships = [
-        {"ship_id": "ASOG", "name": "A Shortfall Of Gravitas", "active": True, "home_port": None, "roles": ["ASDS"], "year_built": None, "mass_kg": None, "model": None, "type": "ASDS", "link": None, "image": None},
-        {"ship_id": "JRTI", "name": "Just Read The Instructions", "active": True, "home_port": None, "roles": ["ASDS"], "year_built": None, "mass_kg": None, "model": None, "type": "ASDS", "link": None, "image": None},
-        {"ship_id": "OCISLY", "name": "Of Course I Still Love You", "active": True, "home_port": None, "roles": ["ASDS"], "year_built": None, "mass_kg": None, "model": None, "type": "ASDS", "link": None, "image": None},
+        {
+            "ship_id": "ASOG",
+            "name": "A Shortfall Of Gravitas",
+            "active": True,
+            "home_port": "Port Canaveral",
+            "roles": ["ASDS"],
+            "year_built": None,
+            "mass_kg": None,
+            "model": None,
+            "type": "ASDS",
+            "link": None,
+            "image": None,
+        },
+        {
+            "ship_id": "JRTI",
+            "name": "Just Read The Instructions",
+            "active": True,
+            "home_port": "Port Canaveral",
+            "roles": ["ASDS"],
+            "year_built": None,
+            "mass_kg": None,
+            "model": None,
+            "type": "ASDS",
+            "link": None,
+            "image": None,
+        },
+        {
+            "ship_id": "OCISLY",
+            "name": "Of Course I Still Love You",
+            "active": True,
+            "home_port": "Port Canaveral",
+            "roles": ["ASDS"],
+            "year_built": None,
+            "mass_kg": None,
+            "model": None,
+            "type": "ASDS",
+            "link": None,
+            "image": None,
+        },
     ]
 
     total_boosters = len(boosters)
     total_reused = sum(1 for b in boosters if (b.get("reuse_count") or 0) > 0)
     total_missions = sum(b["mission_count"] for b in boosters)
-    total_landings = sum((b.get("asds_landings") or 0) + (b.get("rtls_landings") or 0) for b in boosters)
+    total_landings = sum(
+        (b.get("asds_landings") or 0) + (b.get("rtls_landings") or 0) for b in boosters
+    )
     max_reuse = max((b.get("reuse_count", 0) for b in boosters), default=0)
     retired_boosters = sum(1 for b in boosters if b.get("is_retired"))
-    active_boosters = max(total_boosters - retired_boosters, 0)
+    active_boosters = total_boosters - retired_boosters
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -862,45 +951,18 @@ def _fetch_spacex_booster_intel():
         "droneships": droneships,
         "data_sources": {
             "boosters_api": {
-                "source": "local_postgres_seed",
+                "source": "spacexnow.com (live scrape)",
                 "latest_launch_date_utc": None,
                 "days_since_latest_launch": None,
                 "is_stale": False,
             },
             "capsules": {
-                "source": "local_postgres_seed",
+                "source": "spacexnow.com (live scrape)",
             },
-            "confidence_note": "Booster/capsule/landing-site data served from local PostgreSQL seed tables.",
+            "confidence_note": "Booster/capsule data scraped from spacexnow.com using Playwright.",
         },
         "vehicle_images": vehicle_images,
     }
-
-
-@app.get("/spacex/rockets/stats")
-def get_spacex_rocket_stats(refresh: bool = Query(False)):
-    global _spacex_cache_data, _spacex_cache_time
-
-    now = datetime.now(timezone.utc)
-    cache_valid = (
-        _spacex_cache_data is not None
-        and _spacex_cache_time is not None
-        and (now - _spacex_cache_time) < SPACEX_CACHE_TTL
-    )
-
-    if not refresh and cache_valid:
-        return _spacex_cache_data
-
-    try:
-        data = _fetch_spacex_rocket_stats()
-    except requests.RequestException as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Could not fetch SpaceX data: {exc}",
-        ) from exc
-
-    _spacex_cache_data = data
-    _spacex_cache_time = now
-    return data
 
 
 @app.get("/spacex/boosters/intel")
@@ -928,3 +990,91 @@ def get_spacex_booster_intel(refresh: bool = Query(False)):
     _spacex_booster_cache_data = data
     _spacex_booster_cache_time = now
     return data
+
+
+@app.get("/boosters")
+def list_boosters(
+    status: Optional[str] = Query(None),
+    sort_by: Literal["flights", "serial", "landings"] = Query("flights"),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
+    limit: int = Query(100, le=200),
+):
+    """List all boosters from spacexnow.com scrape."""
+    conditions = []
+    params = []
+
+    if status:
+        conditions.append("status = %s")
+        params.append(status)
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    order_dir = "ASC" if sort_dir == "asc" else "DESC"
+    order_clause = f"{sort_by} {order_dir}"
+
+    rows = fetchall(
+        f"SELECT * FROM boosters {where} ORDER BY {order_clause} LIMIT %s",
+        params + [limit],
+    )
+
+    count_row = fetchone(f"SELECT COUNT(*) AS total FROM boosters {where}", params)
+
+    return {
+        "total": count_row["total"],
+        "limit": limit,
+        "data": [dict(r) for r in rows],
+    }
+
+
+@app.get("/boosters/{serial}")
+def get_booster(serial: str):
+    """Get a specific booster by serial."""
+    row = fetchone("SELECT * FROM boosters WHERE serial = %s", (serial,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Booster not found")
+    return dict(row)
+
+
+@app.get("/capsules")
+def list_capsules(
+    status: Optional[str] = Query(None),
+    capsule_type: Optional[str] = Query(None, alias="type"),
+    sort_by: Literal["flights", "serial"] = Query("flights"),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
+    limit: int = Query(100, le=200),
+):
+    """List all capsules from spacexnow.com scrape."""
+    conditions = []
+    params = []
+
+    if status:
+        conditions.append("status = %s")
+        params.append(status)
+    if capsule_type:
+        conditions.append("type = %s")
+        params.append(capsule_type)
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    order_dir = "ASC" if sort_dir == "asc" else "DESC"
+    order_clause = f"{sort_by} {order_dir}"
+
+    rows = fetchall(
+        f"SELECT * FROM capsules {where} ORDER BY {order_clause} LIMIT %s",
+        params + [limit],
+    )
+
+    count_row = fetchone(f"SELECT COUNT(*) AS total FROM capsules {where}", params)
+
+    return {
+        "total": count_row["total"],
+        "limit": limit,
+        "data": [dict(r) for r in rows],
+    }
+
+
+@app.get("/capsules/{serial}")
+def get_capsule(serial: str):
+    """Get a specific capsule by serial."""
+    row = fetchone("SELECT * FROM capsules WHERE serial = %s", (serial,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Capsule not found")
+    return dict(row)
