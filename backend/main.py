@@ -149,6 +149,44 @@ def _fetch_launch_page_summary(url: str) -> Optional[str]:
         return None
 
 
+def _fetch_falcon9_vehicle_page_stats() -> Optional[dict]:
+    url = "https://www.spacex.com/vehicles/falcon-9/"
+    try:
+        resp = requests.get(url, timeout=12)
+        if resp.status_code != 200:
+            return None
+        text = re.sub(r"<[^>]+>", " ", resp.text)
+        text = re.sub(r"\s+", " ", text).strip()
+
+        def extract(label: str) -> Optional[int]:
+            patterns = [
+                rf"([0-9]{{1,3}}(?:,[0-9]{{3}})*)\s+{label}",
+                rf"{label}\s+([0-9]{{1,3}}(?:,[0-9]{{3}})*)",
+            ]
+            for pattern in patterns:
+                m = re.search(pattern, text, flags=re.IGNORECASE)
+                if m:
+                    return int(m.group(1).replace(",", ""))
+            return None
+
+        completed = extract("Completed missions")
+        landings = extract("Total landings")
+        reflights = extract("Total reflights")
+
+        if completed is None and landings is None and reflights is None:
+            return None
+
+        return {
+            "completed_missions": completed,
+            "total_landings": landings,
+            "total_reflights": reflights,
+            "source_url": url,
+            "source_type": "spacex.com",
+        }
+    except requests.RequestException:
+        return None
+
+
 def _fetch_spacex_rocket_stats():
     rockets_resp = requests.get(f"{SPACEX_API}/rockets", timeout=30)
     launches_resp = requests.post(
@@ -197,6 +235,13 @@ def _fetch_spacex_rocket_stats():
     total_reused_core_flights = 0
     total_successful = 0
     recent_launches = []
+    falcon9_rocket_id = next(
+        (r["id"] for r in rockets if str(r.get("name", "")).lower() == "falcon 9"),
+        None,
+    )
+    f9_completed_missions_calc = 0
+    f9_total_landings_calc = 0
+    f9_total_reflights_calc = 0
 
     for launch in launches:
         rocket_id = launch.get("rocket")
@@ -231,6 +276,14 @@ def _fetch_spacex_rocket_stats():
             if (core.get("flight") or 0) > 1:
                 stats["reused_core_flights"] += 1
                 total_reused_core_flights += 1
+
+        if falcon9_rocket_id and rocket_id == falcon9_rocket_id:
+            f9_completed_missions_calc += 1
+            for core in launch.get("cores") or []:
+                if core.get("landing_success") is True:
+                    f9_total_landings_calc += 1
+                if (core.get("flight") or 0) > 1:
+                    f9_total_reflights_calc += 1
 
     for launch in launches[:10]:
         rocket_name = by_rocket.get(launch.get("rocket"), {}).get("name")
@@ -271,9 +324,37 @@ def _fetch_spacex_rocket_stats():
 
     rocket_list.sort(key=lambda r: r["mission_count"], reverse=True)
 
+    f9_official = _fetch_falcon9_vehicle_page_stats()
+    f9_completed = (
+        f9_official.get("completed_missions")
+        if f9_official and f9_official.get("completed_missions") is not None
+        else f9_completed_missions_calc
+    )
+    f9_landings = (
+        f9_official.get("total_landings")
+        if f9_official and f9_official.get("total_landings") is not None
+        else f9_total_landings_calc
+    )
+    f9_reflights = (
+        f9_official.get("total_reflights")
+        if f9_official and f9_official.get("total_reflights") is not None
+        else f9_total_reflights_calc
+    )
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "overall": {
+            "scope": "falcon9",
+            "total_launches": f9_completed,
+            "successful_launches": None,
+            "launch_success_rate": None,
+            "booster_landings": f9_landings,
+            "landing_rate": _pct(f9_landings, f9_completed),
+            "total_core_flights": f9_completed,
+            "reused_core_flights": f9_reflights,
+            "reusability_rate": _pct(f9_reflights, f9_completed),
+        },
+        "all_rockets_overall": {
             "total_rockets": len(rockets),
             "active_rockets": sum(1 for r in rockets if r.get("active")),
             "total_launches": len(launches),
@@ -284,6 +365,18 @@ def _fetch_spacex_rocket_stats():
             "total_core_flights": total_core_flights,
             "reused_core_flights": total_reused_core_flights,
             "reusability_rate": _pct(total_reused_core_flights, total_core_flights),
+        },
+        "falcon9": {
+            "completed_missions": f9_completed,
+            "total_landings": f9_landings,
+            "total_reflights": f9_reflights,
+            "calculated": {
+                "completed_missions": f9_completed_missions_calc,
+                "total_landings": f9_total_landings_calc,
+                "total_reflights": f9_total_reflights_calc,
+            },
+            "source": f9_official
+            or {"source_type": "api.spacexdata.com", "source_url": "https://api.spacexdata.com/v4"},
         },
         "recent_launches": recent_launches,
         "rockets": rocket_list,

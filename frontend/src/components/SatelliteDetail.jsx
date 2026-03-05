@@ -17,8 +17,8 @@ export default function SatelliteDetail({ satellite: sat, apiBase, onClose }) {
     </div>
   );
 
-  const statusColors = { active: "#22d3a5", decayed: "#f87171", decaying: "#fbbf24", unknown: "#6b7280" };
-  const color = statusColors[sat.status] || "#6b7280";
+  const statusColors = { active: "#f2f2f2", decayed: "#bdbdbd", decaying: "#d9d9d9", unknown: "#8f8f8f" };
+  const color = statusColors[sat.status] || "#8f8f8f";
 
   return (
     <div className="detail-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -95,8 +95,8 @@ function MiniChart({ data }) {
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="history-svg">
         <defs>
           <linearGradient id="altGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#22d3a5" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#22d3a5" stopOpacity="0" />
+            <stop offset="0%" stopColor="#f2f2f2" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#f2f2f2" stopOpacity="0" />
           </linearGradient>
         </defs>
         <polyline
@@ -104,7 +104,7 @@ function MiniChart({ data }) {
           fill="url(#altGrad)"
           stroke="none"
         />
-        <polyline points={points} fill="none" stroke="#22d3a5" strokeWidth="1.5" />
+        <polyline points={points} fill="none" stroke="#f2f2f2" strokeWidth="1.5" />
       </svg>
       <div className="chart-labels">
         <span>{min.toFixed(0)} km</span>

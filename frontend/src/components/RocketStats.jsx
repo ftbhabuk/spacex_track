@@ -12,19 +12,20 @@ export default function RocketStats({ data, loading }) {
 
   const overall = data.overall || {};
   const rockets = data.rockets || [];
+  const sourceType = data?.falcon9?.source?.source_type || "api";
 
   const cards = [
-    { label: "Total Launches", value: overall.total_launches?.toLocaleString() },
-    { label: "Booster Landings", value: overall.booster_landings?.toLocaleString() },
-    { label: "Core Reusability", value: pct(overall.reusability_rate) },
-    { label: "Launch Success", value: pct(overall.launch_success_rate) },
+    { label: "Completed Missions (F9)", value: overall.total_launches?.toLocaleString() },
+    { label: "Total Landings (F9)", value: overall.booster_landings?.toLocaleString() },
+    { label: "Total Reflights (F9)", value: overall.reused_core_flights?.toLocaleString() },
+    { label: "Reflight Rate (F9)", value: pct(overall.reusability_rate) },
   ];
 
   return (
     <section className="rocket-section">
       <div className="section-head">
         <h2>SpaceX Rocket Intelligence</h2>
-        <span className="mono dim">Generated: {dateOnly(data.generated_at)}</span>
+        <span className="mono dim">Generated: {dateOnly(data.generated_at)} · Source: {sourceType}</span>
       </div>
 
       <div className="stats-bar">
