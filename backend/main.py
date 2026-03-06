@@ -775,36 +775,98 @@ def _fetch_spacex_booster_intel():
     rtls_sites = {"LZ-1", "LZ-2", "LZ-4", "LZ-40"}
 
     boosters_rows = fetchall(
-        "SELECT serial, status, block, flights, landings, asds_landings, rtls_landings, notes, scraped_at FROM boosters ORDER BY flights DESC"
+        """
+        SELECT serial, vehicle, version, status, flights, comment,
+               landings_success, landings_attempts, updated_at
+        FROM spacex_boosters
+        ORDER BY flights DESC
+        """
+    )
+    booster_mission_rows = fetchall(
+        """
+        SELECT booster_serial, mission_name, mission_date, landing_site
+        FROM spacex_booster_missions
+        ORDER BY mission_date DESC NULLS LAST, id DESC
+        """
     )
     capsule_rows = fetchall(
-        "SELECT serial, status, type, flights, notes FROM capsules ORDER BY flights DESC"
+        """
+        SELECT capsule_id, version, status, flights, comment
+        FROM spacex_capsules
+        ORDER BY flights DESC
+        """
     )
+    capsule_mission_rows = fetchall(
+        """
+        SELECT capsule_id, mission_name, mission_date
+        FROM spacex_capsule_missions
+        ORDER BY mission_date DESC NULLS LAST, id DESC
+        """
+    )
+
+    missions_by_booster = {}
+    for row in booster_mission_rows:
+        serial = row.get("booster_serial")
+        if not serial:
+            continue
+        missions_by_booster.setdefault(serial, []).append(row)
+
+    missions_by_capsule = {}
+    for row in capsule_mission_rows:
+        capsule_id = row.get("capsule_id")
+        if not capsule_id:
+            continue
+        missions_by_capsule.setdefault(capsule_id, []).append(row)
 
     boosters = []
     for row in boosters_rows:
         flights = row.get("flights") or 0
-        asds = row.get("asds_landings") or 0
-        rtls = row.get("rtls_landings") or 0
-        landings = row.get("landings") or (asds + rtls)
+        serial = row.get("serial")
+        missions = missions_by_booster.get(serial, [])
+        asds = sum(
+            1 for m in missions if (m.get("landing_site") or "").upper() in asds_sites
+        )
+        rtls = sum(
+            1 for m in missions if (m.get("landing_site") or "").upper() in rtls_sites
+        )
+        landings = row.get("landings_success")
+        if landings is None:
+            landings = asds + rtls
 
         is_retired = row.get("status") in {"retired", "lost", "destroyed", "expended"}
 
+        recent_missions = []
+        reuse_missions = []
+        for idx, mission in enumerate(missions):
+            mission_item = {
+                "mission_name": mission.get("mission_name"),
+                "date_utc": mission.get("mission_date").isoformat()
+                if mission.get("mission_date")
+                else None,
+                "flight_number": None,
+                "core_flight_number": None,
+                "landing_type": mission.get("landing_site"),
+                "landing_success": mission.get("landing_site") is not None,
+            }
+            recent_missions.append(mission_item)
+            if idx > 0:
+                reuse_missions.append(mission_item)
+
         boosters.append(
             {
-                "core_id": row["serial"],
-                "serial": row["serial"],
-                "display_name": row["serial"],
+                "core_id": serial,
+                "serial": serial,
+                "display_name": serial,
                 "status": row.get("status") or "unknown",
                 "type": "Falcon Booster",
-                "block": row.get("block"),
+                "block": row.get("version"),
                 "reuse_count": max(flights - 1, 0),
                 "rtls_attempts": rtls,
                 "rtls_landings": rtls,
                 "asds_attempts": asds,
                 "asds_landings": asds,
-                "last_update": row.get("scraped_at").isoformat()
-                if row.get("scraped_at")
+                "last_update": row.get("updated_at").isoformat()
+                if row.get("updated_at")
                 else None,
                 "launch_count": flights,
                 "landing_success_count": landings,
@@ -814,29 +876,35 @@ def _fetch_spacex_booster_intel():
                 "landing_rate": round((landings / flights * 100), 1)
                 if flights > 0
                 else None,
-                "recent_missions": [],
-                "reuse_missions": [],
+                "recent_missions": recent_missions[:12],
+                "reuse_missions": reuse_missions[:12],
                 "source_lines": None,
                 "image_url": vehicle_images.get("falcon9"),
-                "comment": row.get("notes"),
+                "comment": row.get("comment"),
             }
         )
 
     capsules = []
     for row in capsule_rows:
         flights = row.get("flights") or 0
+        capsule_id = row.get("capsule_id")
+        capsule_missions = missions_by_capsule.get(capsule_id, [])
         capsules.append(
             {
-                "capsule_id": row["serial"],
-                "name": row["serial"],
+                "capsule_id": capsule_id,
+                "name": capsule_id,
                 "status": row.get("status") or "unknown",
                 "missions_reported": flights,
                 "reuses_reported": max(flights - 1, 0),
                 "water_landings_reported": None,
-                "raw_lines": [],
+                "raw_lines": [
+                    m.get("mission_name")
+                    for m in capsule_missions[:5]
+                    if m.get("mission_name")
+                ],
                 "source": "spacexnow.com scrape",
                 "image_url": vehicle_images.get("dragon"),
-                "comment": row.get("notes"),
+                "comment": row.get("comment"),
             }
         )
 
@@ -1026,7 +1094,7 @@ def list_boosters(
     sort_dir: Literal["asc", "desc"] = Query("desc"),
     limit: int = Query(100, le=200),
 ):
-    """List all boosters from spacexnow.com scrape."""
+    """List all seeded SpaceX boosters."""
     conditions = []
     params = []
 
@@ -1036,14 +1104,21 @@ def list_boosters(
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     order_dir = "ASC" if sort_dir == "asc" else "DESC"
-    order_clause = f"{sort_by} {order_dir}"
+    sort_columns = {
+        "flights": "flights",
+        "serial": "serial",
+        "landings": "landings_success",
+    }
+    order_clause = f"{sort_columns[sort_by]} {order_dir}"
 
     rows = fetchall(
-        f"SELECT * FROM boosters {where} ORDER BY {order_clause} LIMIT %s",
+        f"SELECT * FROM spacex_boosters {where} ORDER BY {order_clause} LIMIT %s",
         params + [limit],
     )
 
-    count_row = fetchone(f"SELECT COUNT(*) AS total FROM boosters {where}", params)
+    count_row = fetchone(
+        f"SELECT COUNT(*) AS total FROM spacex_boosters {where}", params
+    )
 
     return {
         "total": count_row["total"],
@@ -1054,8 +1129,8 @@ def list_boosters(
 
 @app.get("/boosters/{serial}")
 def get_booster(serial: str):
-    """Get a specific booster by serial."""
-    row = fetchone("SELECT * FROM boosters WHERE serial = %s", (serial,))
+    """Get a specific seeded SpaceX booster by serial."""
+    row = fetchone("SELECT * FROM spacex_boosters WHERE serial = %s", (serial,))
     if not row:
         raise HTTPException(status_code=404, detail="Booster not found")
     return dict(row)
@@ -1069,7 +1144,7 @@ def list_capsules(
     sort_dir: Literal["asc", "desc"] = Query("desc"),
     limit: int = Query(100, le=200),
 ):
-    """List all capsules from spacexnow.com scrape."""
+    """List all seeded SpaceX capsules."""
     conditions = []
     params = []
 
@@ -1077,19 +1152,25 @@ def list_capsules(
         conditions.append("status = %s")
         params.append(status)
     if capsule_type:
-        conditions.append("type = %s")
+        conditions.append("version = %s")
         params.append(capsule_type)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     order_dir = "ASC" if sort_dir == "asc" else "DESC"
-    order_clause = f"{sort_by} {order_dir}"
+    sort_columns = {
+        "flights": "flights",
+        "serial": "capsule_id",
+    }
+    order_clause = f"{sort_columns[sort_by]} {order_dir}"
 
     rows = fetchall(
-        f"SELECT * FROM capsules {where} ORDER BY {order_clause} LIMIT %s",
+        f"SELECT * FROM spacex_capsules {where} ORDER BY {order_clause} LIMIT %s",
         params + [limit],
     )
 
-    count_row = fetchone(f"SELECT COUNT(*) AS total FROM capsules {where}", params)
+    count_row = fetchone(
+        f"SELECT COUNT(*) AS total FROM spacex_capsules {where}", params
+    )
 
     return {
         "total": count_row["total"],
@@ -1100,8 +1181,8 @@ def list_capsules(
 
 @app.get("/capsules/{serial}")
 def get_capsule(serial: str):
-    """Get a specific capsule by serial."""
-    row = fetchone("SELECT * FROM capsules WHERE serial = %s", (serial,))
+    """Get a specific seeded SpaceX capsule by ID."""
+    row = fetchone("SELECT * FROM spacex_capsules WHERE capsule_id = %s", (serial,))
     if not row:
         raise HTTPException(status_code=404, detail="Capsule not found")
     return dict(row)
