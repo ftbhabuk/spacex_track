@@ -100,8 +100,8 @@ export default function App() {
           <button className="logo logo-btn" onClick={() => setView("home")}>
             <span className="logo-icon">SX</span>
             <div>
-              <h1>SPACEX TRACKER SX</h1>
-              <p className="tagline">SpaceX boosters, launches, Starlink, Dragon, and Starship context</p>
+              <h1>SPACEX TRACKER </h1>
+              <p className="tagline">Track  boosters, launches, Starlink, Dragon, and Starship context</p>
             </div>
           </button>
           <div className="header-meta">
@@ -242,14 +242,14 @@ export default function App() {
       <footer className="app-footer">
         <div className="app-footer-inner">
           <div>
-            <div className="app-footer-title mono">SPACEX TRACKER SX</div>
+            <div className="app-footer-title mono">NOTE:</div>
             <p className="app-footer-copy">
               Personal project built from public databases and open mission feeds.
               Coverage is expanding and many features are still to be added.
             </p>
           </div>
           <div className="app-footer-meta mono">
-            <span>Launch + booster + constellation watch</span>
+            <span>NOT AFFILATED WITH SPACEX</span>
             <span>To be continued...</span>
           </div>
         </div>

@@ -1,0 +1,19 @@
+{
+  "name": "spacex-tracker-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "hono": "^4.6.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260220.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.5.0"
+  }
+}

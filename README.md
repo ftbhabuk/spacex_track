@@ -1,111 +1,79 @@
-# 🛰 Starlink Tracker
+# SpaceX Tracker SX
 
-A live, auto-updating database of all Starlink satellites — tracking active/decayed status, orbital elements, launch dates, and altitude history.
+Track SpaceX launches, Falcon booster reuse, Dragon capsules, and Starlink constellation state in one dashboard.
 
-**Stack:** React · FastAPI · PostgreSQL (local) · Python
+## Architecture
 
-> 🚧 Currently running locally. Deployment to Cloudflare planned later.
+- `frontend/`: Vite + React UI (deploy to Cloudflare Pages)
+- `worker/`: Cloudflare Worker API (TypeScript + Hono)
+- `backend/`: Python ingestion/sync scripts for Postgres data maintenance
+- `backend/Schema.sql`: PostgreSQL schema (satellites + SpaceX asset tables)
 
----
+## Runtime Model
 
-## 📁 Project Structure
+- Public API is served from Cloudflare Worker.
+- UI is served from Cloudflare Pages.
+- Postgres is hosted on Neon.
+- Scheduled data refresh runs via GitHub Actions:
+  - `backend/ingest.py` (Starlink from Space-Track)
+  - `backend/sync_spacex_assets.py` (SpaceX assets)
 
-```
-starlink-tracker/
-├── backend/
-│   ├── main.py          # FastAPI REST API
-│   ├── ingest.py        # Data ingestion from CelesTrak + Space-Track
-│   ├── database.py      # PostgreSQL connection + query helpers
-│   ├── schema.sql       # Local Postgres table definitions
-│   └── requirements.txt
-├── frontend/
-│   └── src/
-│       ├── App.jsx
-│       └── components/
-│           ├── SatelliteTable.jsx
-│           ├── SatelliteDetail.jsx
-│           └── StatsBar.jsx
-└── .github/
-    └── workflows/
-        └── daily-ingest.yml   # Cron (for future use when deployed)
-```
+## Important Security Note
 
----
+If a database connection string was ever shared publicly, rotate it immediately in Neon and replace all secrets.
 
-## 🚀 Local Setup Guide
+## 1) Neon Setup
 
-### 1. PostgreSQL
+1. Create a Neon project.
+2. Run schema:
+   - `psql "<NEON_DATABASE_URL>" -f backend/Schema.sql`
+3. Keep your connection URL as a secret only.
 
-Make sure PostgreSQL is installed and running on your machine. Then create the database and user:
+## 2) Deploy Worker API (Cloudflare)
 
 ```bash
-sudo -u postgres psql
+cd worker
+npm install
+npx wrangler login
+npx wrangler secret put DATABASE_URL
+npx wrangler deploy
 ```
 
-```sql
-CREATE DATABASE starlink_tracker;
-CREATE USER starlink_user WITH PASSWORD 'starlink123';
-GRANT ALL PRIVILEGES ON DATABASE starlink_tracker TO starlink_user;
-\q
-```
+After deploy, note the Worker URL, for example:
+- `https://spacex-tracker-api.<account>.workers.dev`
 
-Apply the schema:
+### Worker routes implemented
 
-```bash
-psql -U starlink_user -d starlink_tracker -h localhost -f backend/schema.sql
-```
+- `GET /`
+- `GET /stats`
+- `GET /satellites`
+- `GET /satellites/:noradId`
+- `GET /satellites/:noradId/history`
+- `GET /spacex/rockets/stats`
+- `GET /spacex/boosters/intel`
 
-### 2. Backend environment
+## 3) Deploy Frontend (Cloudflare Pages)
 
-Create `backend/.env`:
+Build settings:
+- Framework preset: `Vite`
+- Root directory: `frontend`
+- Build command: `npm run build`
+- Build output directory: `dist`
 
-```env
-DATABASE_URL=postgresql://starlink_user:starlink123@localhost:5432/starlink_tracker
+Environment variable:
+- `VITE_API_URL=https://<your-worker-url>`
 
-# Optional — for launch/decay date enrichment
-# Register free at https://www.space-track.org/auth/createAccount
-SPACETRACK_USER=your@email.com
-SPACETRACK_PASS=yourpassword
-```
+## 4) GitHub Actions Secrets
 
-### 3. Backend setup
+Set these in your GitHub repo settings:
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+- `DATABASE_URL`
+- `SPACETRACK_USER`
+- `SPACETRACK_PASS`
 
-### 4. Run the ingestion (first time)
+## 5) Local Development
 
-```bash
-python ingest.py
-```
-
-Pulls all ~7,000+ Starlink satellites from CelesTrak, parses orbital elements from TLE data, and loads everything into your local Postgres. Takes about 1–2 minutes.
-
-### 5. Start the API
-
-```bash
-source .venv/bin/activate
-uvicorn main:app --reload
-```
-
-Or from backend directory with venv already activated:
-```bash
-uvicorn main:app --reload
-```
-
-Interactive API docs at: http://localhost:8000/docs
-
-### 6. Frontend setup
-
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:8000
-```
+### Frontend
 
 ```bash
 cd frontend
@@ -113,63 +81,30 @@ npm install
 npm run dev
 ```
 
-Frontend runs at: http://localhost:5173
+### Worker API (local)
 
----
-
-## 🏃 Running the App
-
-You'll need **two terminals**:
-
-**Terminal 1 — Backend:**
 ```bash
-cd backend
-source .venv/bin/activate
-uvicorn main:app --reload
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd frontend
+cd worker
+cp .dev.vars.example .dev.vars
+# edit .dev.vars with your local/Neon DATABASE_URL
+npm install
 npm run dev
 ```
 
-Then open http://localhost:5173 in your browser.
+### Python ingest/sync scripts
 
----
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python ingest.py
+python sync_spacex_assets.py
+```
 
-## 🔌 API Endpoints
+## Current Deployment Recommendation
 
-| Endpoint | Description |
-|---|---|
-| `GET /satellites` | List all satellites (filterable, paginated) |
-| `GET /satellites?search=STARLINK-1234` | Search by name or NORAD ID |
-| `GET /satellites?status=active` | Filter: `active` · `decayed` · `decaying` · `unknown` |
-| `GET /satellites/{norad_id}` | Single satellite full detail |
-| `GET /satellites/{norad_id}/history` | Altitude history (last 90 records) |
-| `GET /stats` | Aggregate counts + avg altitude |
-| `GET /spacex/rockets/stats` | SpaceX rocket analytics: launches, landings, reusability, missions |
-| `GET /spacex/boosters/intel` | Booster-level intelligence + mission history + landpads + droneships |
-
----
-
-## 📊 Data Sources
-
-| Source | Data | Auth |
-|---|---|---|
-| [CelesTrak](https://celestrak.org) | TLE data, orbital elements | None — free |
-| [Space-Track](https://space-track.org) | Launch dates, decay/reentry info | Free account |
-| [SpaceXNow](https://spacexnow.com) | SpaceX launch/booster/mission stats pages | None — scraped |
-| [SpaceX.com](https://www.spacex.com) | Falcon 9 vehicle/launch page metadata + imagery | None — scraped |
-
----
-
-## 🗺 Roadmap
-
-- [ ] Live 3D position map using `satellite.js` + Three.js
-- [ ] Deorbit prediction tracker (perigee trend → estimated reentry date)
-- [ ] Launch history grouped by mission
-- [ ] Constellation health dashboard (% active by orbital shell)
-- [ ] Deploy backend + frontend to Cloudflare
-- [ ] GitHub Actions cron for daily auto-update (post-deployment)
-- [ ] Email/webhook alerts for mass deorbit events
+- Frontend: Cloudflare Pages
+- Backend: Cloudflare Workers (`worker/`)
+- Database: Neon Postgres
+- Scheduled jobs: GitHub Actions
