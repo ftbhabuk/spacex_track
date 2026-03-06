@@ -382,19 +382,16 @@ export default app;
 async function buildRocketStats(sql: ReturnType<typeof neon>): Promise<Dict> {
   const recent = await fetchRocketLaunchLive("previous", 12);
   const upcoming = await fetchRocketLaunchLive("next", 10);
-  const missionCountRows = await sql<Dict[]>`
-    SELECT COUNT(DISTINCT mission_name)::int AS total_launches
-    FROM spacex_booster_missions
-  `;
   const boosterAggRows = await sql<Dict[]>`
     SELECT
+      COALESCE(SUM(flights), 0)::int AS total_core_flights,
       COALESCE(SUM(landings_success), 0)::int AS booster_landings,
       COALESCE(SUM(landings_attempts), 0)::int AS landing_attempts,
       COALESCE(SUM(GREATEST(flights - 1, 0)), 0)::int AS reflights
     FROM spacex_boosters
   `;
 
-  const completedMissions = toInt(missionCountRows[0]?.total_launches);
+  const completedMissions = toInt(boosterAggRows[0]?.total_core_flights);
   const boosterLandings = toInt(boosterAggRows[0]?.booster_landings);
   const landingAttempts = toInt(boosterAggRows[0]?.landing_attempts);
   const reflights = toInt(boosterAggRows[0]?.reflights);
