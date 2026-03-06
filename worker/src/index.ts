@@ -35,6 +35,7 @@ app.use(
 );
 
 const SPACEX_API = "https://api.spacexdata.com/v4";
+const ROCKETLAUNCH_LIVE_API = "https://fdo.rocketlaunch.live/json/launches";
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
 const VEHICLE_IMAGES = {
@@ -391,11 +392,11 @@ async function buildRocketStats(): Promise<Dict> {
       ? String(falcon9.flickr_images[0])
       : VEHICLE_IMAGES.falcon9;
 
-  const pastLaunches = await fetchLaunches({ upcoming: false }, { date_utc: "desc" }, 40);
-  const upcomingLaunches = await fetchLaunches({ upcoming: true }, { date_utc: "asc" }, 20);
+  const recent = await fetchRocketLaunchLive("previous", 12);
+  const upcoming = await fetchRocketLaunchLive("next", 10);
 
   const f9Launches = falcon9Id
-    ? await fetchLaunches({ rocket: falcon9Id, upcoming: false }, { date_utc: "desc" }, 400)
+    ? await fetchSpaceXLaunches({ rocket: falcon9Id, upcoming: false }, { date_utc: "desc" }, 400)
     : [];
 
   const completedMissions = f9Launches.length;
@@ -412,9 +413,6 @@ async function buildRocketStats(): Promise<Dict> {
     const cores = Array.isArray((l as Dict).cores) ? ((l as Dict).cores as Dict[]) : [];
     return sum + cores.filter((c) => toInt(c.flight) > 1).length;
   }, 0);
-
-  const recent = pastLaunches.slice(0, 12).map(normalizeLaunchItem);
-  const upcoming = upcomingLaunches.slice(0, 10).map(normalizeLaunchItem);
 
   return {
     generated_at: new Date().toISOString(),
@@ -443,7 +441,7 @@ async function buildRocketStats(): Promise<Dict> {
     },
     data_sources: {
       launches_list: {
-        source: "api.spacexdata.com/v4/launches/query",
+        source: "fdo.rocketlaunch.live/json/launches/previous/12",
         fetched_at: new Date().toISOString(),
       },
       rockets_api: {
@@ -453,7 +451,7 @@ async function buildRocketStats(): Promise<Dict> {
         is_stale: false,
       },
       upcoming_launches: {
-        source: "api.spacexdata.com/v4/launches/query",
+        source: "fdo.rocketlaunch.live/json/launches/next/10",
         fetched_at: new Date().toISOString(),
       },
     },
@@ -482,7 +480,7 @@ async function buildRocketStats(): Promise<Dict> {
   };
 }
 
-async function fetchLaunches(query: Dict, sort: Dict, limit = 20): Promise<Dict[]> {
+async function fetchSpaceXLaunches(query: Dict, sort: Dict, limit = 20): Promise<Dict[]> {
   const payload = {
     query,
     options: {
@@ -513,36 +511,66 @@ async function fetchLaunches(query: Dict, sort: Dict, limit = 20): Promise<Dict[
   return res.docs || [];
 }
 
-function normalizeLaunchItem(item: Dict): LaunchItem {
-  const rocketObj = asObj(item.rocket);
-  const launchpadObj = asObj(item.launchpad);
-  const links = asObj(item.links);
-  const patch = asObj(links.patch);
-  const reddit = asObj(links.reddit);
+async function fetchRocketLaunchLive(kind: "next" | "previous", limit: number): Promise<LaunchItem[]> {
+  const url = `${ROCKETLAUNCH_LIVE_API}/${kind}/${limit}`;
+  const data = await fetchJson<{ result?: Dict[] }>(url);
+  const rows = Array.isArray(data.result) ? data.result : [];
+  return rows.map((item) => normalizeRocketLaunchLiveItem(item, kind)).filter((item) => Boolean(item.name));
+}
 
-  const launchpadName = typeof launchpadObj.name === "string" ? launchpadObj.name : null;
-  const locality = typeof launchpadObj.locality === "string" ? launchpadObj.locality : null;
-  const region = typeof launchpadObj.region === "string" ? launchpadObj.region : null;
+function normalizeRocketLaunchLiveItem(item: Dict, kind: "next" | "previous"): LaunchItem {
+  const provider = asObj(item.provider);
+  const vehicle = asObj(item.vehicle);
+  const pad = asObj(item.pad);
+  const location = asObj(pad.location);
 
-  const summaryParts = [launchpadName, locality, region].filter(Boolean);
+  const launchName =
+    typeof item.name === "string" && item.name
+      ? item.name
+      : typeof item.sort_name === "string" && item.sort_name
+        ? item.sort_name
+        : "Unknown mission";
+
+  const padName = typeof pad.name === "string" ? pad.name : null;
+  const locationName = typeof location.name === "string" ? location.name : null;
+  const state = typeof location.statename === "string" ? location.statename : null;
+  const country = typeof location.country === "string" ? location.country : null;
+  const summaryParts = [padName, locationName, state, country].filter(Boolean);
+
+  const launchDescription =
+    (typeof item.launch_description === "string" && item.launch_description) ||
+    (typeof item.mission_description === "string" && item.mission_description) ||
+    null;
+
+  const rawResult = typeof item.result === "number" ? item.result : null;
+  const success = rawResult == null ? null : rawResult > 0;
+
+  const tags = [];
+  if (typeof provider.name === "string" && provider.name) tags.push(provider.name);
+  if (typeof vehicle.name === "string" && vehicle.name) tags.push(vehicle.name);
+
+  const imageUrl =
+    (typeof item.launch_image === "string" && item.launch_image) ||
+    (typeof item.quicktext === "string" && item.quicktext.startsWith("http") ? item.quicktext : null) ||
+    null;
+
+  const siteUrl =
+    (typeof item.quicktext === "string" && item.quicktext.startsWith("http") && item.quicktext) ||
+    (typeof item.slug === "string" && item.slug ? `https://rocketlaunch.live/launch/${item.slug}` : null);
 
   return {
-    id: String(item.id || ""),
-    name: String(item.name || "Unknown mission"),
-    date_utc: toIso(item.date_utc),
-    rocket_name: typeof rocketObj.name === "string" ? rocketObj.name : "Unknown rocket",
-    success: typeof item.success === "boolean" ? item.success : null,
-    image_url: typeof patch.large === "string" ? patch.large : null,
+    id: String(item.id || item.sort_date || item.t0 || launchName),
+    name: launchName,
+    date_utc: toIso(item.t0 || item.win_open || item.sort_date),
+    rocket_name: typeof vehicle.name === "string" ? vehicle.name : "Unknown rocket",
+    success,
+    image_url: imageUrl,
     site_summary: summaryParts.length > 0 ? summaryParts.join(" · ") : null,
-    launch_description: typeof item.details === "string" ? item.details : null,
+    launch_description: launchDescription,
     weather_summary: null,
-    tags: [],
-    site_url:
-      (typeof links.webcast === "string" && links.webcast) ||
-      (typeof links.article === "string" && links.article) ||
-      (typeof reddit.launch === "string" && reddit.launch) ||
-      null,
-    source: "api.spacexdata.com/v4",
+    tags,
+    site_url: siteUrl,
+    source: `${ROCKETLAUNCH_LIVE_API}/${kind}`,
   };
 }
 
