@@ -34,7 +34,6 @@ app.use(
   }),
 );
 
-const SPACEX_API = "https://api.spacexdata.com/v4";
 const ROCKETLAUNCH_LIVE_API = "https://fdo.rocketlaunch.live/json/launches";
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
@@ -171,7 +170,8 @@ app.get("/spacex/rockets/stats", async (c) => {
     return c.json(rocketsCache.data);
   }
 
-  const data = await buildRocketStats();
+  const sql = neon(c.env.DATABASE_URL);
+  const data = await buildRocketStats(sql);
   rocketsCache = { expiresAt: now + CACHE_TTL_MS, data };
   return c.json(data);
 });
@@ -379,40 +379,30 @@ app.onError((err, c) => {
 
 export default app;
 
-async function buildRocketStats(): Promise<Dict> {
-  const rockets = await fetchJson<{ docs: Dict[] }>(`${SPACEX_API}/rockets/query`, {
-    query: {},
-    options: { pagination: false },
-  });
-
-  const falcon9 = (rockets.docs || []).find((r) => String(r.name || "").toLowerCase() === "falcon 9");
-  const falcon9Id = String(falcon9?.id || "");
-  const falcon9Image =
-    Array.isArray(falcon9?.flickr_images) && falcon9.flickr_images[0]
-      ? String(falcon9.flickr_images[0])
-      : VEHICLE_IMAGES.falcon9;
-
+async function buildRocketStats(sql: ReturnType<typeof neon>): Promise<Dict> {
   const recent = await fetchRocketLaunchLive("previous", 12);
   const upcoming = await fetchRocketLaunchLive("next", 10);
+  const missionCountRows = await sql<Dict[]>`
+    SELECT COUNT(DISTINCT mission_name)::int AS total_launches
+    FROM spacex_booster_missions
+  `;
+  const boosterAggRows = await sql<Dict[]>`
+    SELECT
+      COALESCE(SUM(landings_success), 0)::int AS booster_landings,
+      COALESCE(SUM(landings_attempts), 0)::int AS landing_attempts,
+      COALESCE(SUM(GREATEST(flights - 1, 0)), 0)::int AS reflights
+    FROM spacex_boosters
+  `;
 
-  const f9Launches = falcon9Id
-    ? await fetchSpaceXLaunches({ rocket: falcon9Id, upcoming: false }, { date_utc: "desc" }, 400)
-    : [];
-
-  const completedMissions = f9Launches.length;
-  const successfulMissions = f9Launches.filter((l) => l.success === true).length;
-  const boosterLandings = f9Launches.reduce((sum, l) => {
-    const cores = Array.isArray((l as Dict).cores) ? ((l as Dict).cores as Dict[]) : [];
-    return sum + cores.filter((c) => c.landing_success === true).length;
-  }, 0);
-  const landingAttempts = f9Launches.reduce((sum, l) => {
-    const cores = Array.isArray((l as Dict).cores) ? ((l as Dict).cores as Dict[]) : [];
-    return sum + cores.filter((c) => c.landing_attempt === true || c.landing_success != null).length;
-  }, 0);
-  const reflights = f9Launches.reduce((sum, l) => {
-    const cores = Array.isArray((l as Dict).cores) ? ((l as Dict).cores as Dict[]) : [];
-    return sum + cores.filter((c) => toInt(c.flight) > 1).length;
-  }, 0);
+  const completedMissions = toInt(missionCountRows[0]?.total_launches);
+  const boosterLandings = toInt(boosterAggRows[0]?.booster_landings);
+  const landingAttempts = toInt(boosterAggRows[0]?.landing_attempts);
+  const reflights = toInt(boosterAggRows[0]?.reflights);
+  const knownRecent = recent.filter((l) => l.success != null);
+  const successfulMissions = knownRecent.length
+    ? knownRecent.filter((l) => l.success === true).length
+    : 0;
+  const launchSuccessRate = knownRecent.length ? pct(successfulMissions, knownRecent.length) : null;
 
   return {
     generated_at: new Date().toISOString(),
@@ -420,7 +410,7 @@ async function buildRocketStats(): Promise<Dict> {
       scope: "spacex-api",
       total_launches: completedMissions,
       successful_launches: successfulMissions,
-      launch_success_rate: pct(successfulMissions, completedMissions),
+      launch_success_rate: launchSuccessRate,
       booster_landings: boosterLandings,
       landing_rate: pct(boosterLandings, landingAttempts),
       total_core_flights: completedMissions,
@@ -435,8 +425,8 @@ async function buildRocketStats(): Promise<Dict> {
       landing_attempts: landingAttempts,
       total_reflights: reflights,
       source: {
-        source_type: "api.spacexdata.com",
-        source_url: `${SPACEX_API}/launches/query`,
+        source_type: "neon+rocketlaunch.live",
+        source_url: `${ROCKETLAUNCH_LIVE_API}/previous/12`,
       },
     },
     data_sources: {
@@ -445,7 +435,7 @@ async function buildRocketStats(): Promise<Dict> {
         fetched_at: new Date().toISOString(),
       },
       rockets_api: {
-        source: "api.spacexdata.com/v4",
+        source: "neon spacex_boosters/spacex_booster_missions + rocketlaunch.live",
         latest_launch_date_utc: recent[0]?.date_utc || null,
         days_since_latest_launch: null,
         is_stale: false,
@@ -459,56 +449,24 @@ async function buildRocketStats(): Promise<Dict> {
     upcoming_launches: upcoming,
     rockets: [
       {
-        rocket_id: falcon9Id || "falcon9",
+        rocket_id: "falcon9",
         rocket_name: "Falcon 9",
         mission_count: completedMissions,
         successful_launches: successfulMissions,
         booster_landings: boosterLandings,
         reused_core_flights: reflights,
-        launch_success_rate: pct(successfulMissions, completedMissions),
+        launch_success_rate: launchSuccessRate,
         landing_rate: pct(boosterLandings, landingAttempts),
         reusability_rate: pct(reflights, completedMissions),
-        first_flight: typeof falcon9?.first_flight === "string" ? falcon9.first_flight : null,
+        first_flight: null,
         recent_missions: recent.slice(0, 8).map((l) => ({ name: l.name, date_utc: l.date_utc })),
-        image_url: falcon9Image,
+        image_url: VEHICLE_IMAGES.falcon9,
       },
     ],
     vehicle_images: {
       ...VEHICLE_IMAGES,
-      falcon9: falcon9Image,
     },
   };
-}
-
-async function fetchSpaceXLaunches(query: Dict, sort: Dict, limit = 20): Promise<Dict[]> {
-  const payload = {
-    query,
-    options: {
-      sort,
-      limit,
-      pagination: false,
-      populate: [
-        { path: "rocket", select: ["name"] },
-        { path: "launchpad", select: ["name", "locality", "region"] },
-      ],
-      select: [
-        "id",
-        "name",
-        "date_utc",
-        "success",
-        "details",
-        "links",
-        "rocket",
-        "upcoming",
-        "flight_number",
-        "cores",
-        "launchpad",
-      ],
-    },
-  };
-
-  const res = await fetchJson<{ docs: Dict[] }>(`${SPACEX_API}/launches/query`, payload);
-  return res.docs || [];
 }
 
 async function fetchRocketLaunchLive(kind: "next" | "previous", limit: number): Promise<LaunchItem[]> {
