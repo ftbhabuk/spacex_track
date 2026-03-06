@@ -98,10 +98,10 @@ export default function App() {
       <header className="header">
         <div className="header-inner">
           <button className="logo logo-btn" onClick={() => setView("home")}>
-            <span className="logo-icon">SL</span>
+            <span className="logo-icon">SX</span>
             <div>
-              <h1>STARLINK TRACKER</h1>
-              <p className="tagline">SpaceX booster, launch, and constellation data</p>
+              <h1>SPACEX TRACKER SX</h1>
+              <p className="tagline">SpaceX boosters, launches, Starlink, Dragon, and Starship context</p>
             </div>
           </button>
           <div className="header-meta">
@@ -238,6 +238,22 @@ export default function App() {
           onClose={() => setSelected(null)}
         />
       )}
+
+      <footer className="app-footer">
+        <div className="app-footer-inner">
+          <div>
+            <div className="app-footer-title mono">SPACEX TRACKER SX</div>
+            <p className="app-footer-copy">
+              Personal project built from public databases and open mission feeds.
+              Coverage is expanding and many features are still to be added.
+            </p>
+          </div>
+          <div className="app-footer-meta mono">
+            <span>Launch + booster + constellation watch</span>
+            <span>To be continued...</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

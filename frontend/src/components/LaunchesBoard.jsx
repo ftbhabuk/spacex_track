@@ -61,7 +61,7 @@ export default function LaunchesBoard({ data, loading }) {
         <section className="infra-panel">
           <h3>Latest Launches</h3>
           <div className="source-note">
-            <span className="mono">Source: {launchesSource}</span>
+            <span className="mono">Source: {launchesSource} · Cross-check: spacex.com · x.com/SpaceX</span>
           </div>
           <div className="infra-list">
             {recent.slice(0, 12).map((l) => (

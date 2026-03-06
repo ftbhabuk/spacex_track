@@ -54,6 +54,8 @@ export default function HomeLanding({
       title: "Starlink Constellation",
       text: "Delivering high-speed internet from space. Track active satellites, orbit shells, and constellation health.",
       metric: `${num(totalSatellites)} tracked · ${num(activeStarlink)} active`,
+      metricHref: "https://satellitemap.space/vis/constellation/starlink",
+      metricActionLabel: "Visual Map",
       action: onOpenStarlink,
       actionLabel: "Open Starlink",
       image: images.starlink,
@@ -63,6 +65,7 @@ export default function HomeLanding({
       title: "Falcon Booster Fleet",
       text: "Core-level booster tracking focused on reuse depth, landing outcomes, and current fleet status.",
       metric: `${num(boosters)} boosters · Max reuse ${num(maxReuse)}`,
+      tallMedia: true,
       action: onOpenBoosters,
       actionLabel: "Open Boosters",
       image: images.falconheavy,
@@ -72,6 +75,9 @@ export default function HomeLanding({
       title: "Dragon Vehicle",
       text: "Advancing human spaceflight with reusable crew and cargo missions to orbit.",
       metric: `${num(capsules)} capsules tracked`,
+      metricActionLabel: "Booster Capsules Area",
+      metricAction: onOpenBoosters,
+      tallMedia: true,
       action: null,
       actionLabel: "",
       image: images.dragon,
@@ -80,7 +86,10 @@ export default function HomeLanding({
       badge: "[STARSHIP]",
       title: "Starship Program",
       text: "Next-generation heavy-lift system designed for deep-space transport and high-mass deployment.",
-      metric: "Next-gen heavy lift context",
+      metric: "In development",
+      metricActionLabel: "Tracking Soon",
+      metricDisabled: true,
+      tallMedia: true,
       action: null,
       actionLabel: "",
       image: images.starship,
@@ -95,7 +104,7 @@ export default function HomeLanding({
           <h2>Get In Sync With The Current SpaceX Fleet State.</h2>
           <p className="hero-sub">
             Track Falcon booster performance and Starlink constellation state,
-            with Dragon and Starship context in the same view.
+            launch cadence, and mission outcomes with Dragon and Starship context in the same view.
           </p>
           <div className="hero-actions">
             <button className="cta-btn" onClick={onOpenBoosters}>Start With Boosters</button>
@@ -123,7 +132,7 @@ export default function HomeLanding({
 
       <div className="starter-z-grid">
         {starterFlow.map((item, idx) => (
-          <article key={item.title} className={`starter-z-panel reveal-up delay-${idx + 1} ${idx % 2 === 1 ? "reverse" : ""}`}>
+          <article key={item.title} className={`starter-z-panel reveal-up delay-${idx + 1} ${idx % 2 === 1 ? "reverse" : ""} ${item.tallMedia ? "tall-media" : ""}`}>
             <div className="starter-z-media">
               <SmartImage
                 srcs={[item.image, images.starlink, images.starship, DRAGON_BOOSTER_IMAGE]}
@@ -134,7 +143,24 @@ export default function HomeLanding({
               <p className="kicker">{item.badge}</p>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
-              <div className="starter-z-metric mono">{item.metric}</div>
+              <div className="starter-z-metric-row">
+                <div className="starter-z-metric mono">{item.metric}</div>
+                {item.metricHref && (
+                  <a className="panel-link-btn mono" href={item.metricHref} target="_blank" rel="noreferrer">
+                    {item.metricActionLabel}
+                  </a>
+                )}
+                {item.metricAction && (
+                  <button className="panel-link-btn mono" onClick={item.metricAction}>
+                    {item.metricActionLabel}
+                  </button>
+                )}
+                {item.metricDisabled && (
+                  <button className="panel-link-btn mono disabled" type="button" disabled>
+                    {item.metricActionLabel}
+                  </button>
+                )}
+              </div>
               {item.action && (
                 <button className="ghost-btn" onClick={item.action}>{item.actionLabel}</button>
               )}
