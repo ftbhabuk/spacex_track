@@ -1,48 +1,94 @@
 # SpaceX Tracker SX
 
-Track SpaceX launches, Falcon booster reuse, Dragon capsules, and Starlink constellation state in one dashboard.
+Track Starlink satellites, SpaceX launches, Falcon boosters, and Dragon capsules from one dashboard.
 
 ## Architecture
 
-- `frontend/`: Vite + React UI (deploy to Cloudflare Pages)
-- `worker/`: Cloudflare Worker API (TypeScript + Hono)
-- `backend/`: Python ingestion/sync scripts for Postgres data maintenance
-- `backend/Schema.sql`: PostgreSQL schema (satellites + SpaceX asset tables)
+- `frontend/`: Vite + React client.
+- `worker/`: Hono API for edge/runtime deployment.
+- `backend/`: FastAPI + ingestion/sync jobs for data collection and DB maintenance.
+- `backend/Schema.sql`: PostgreSQL schema.
 
-## Runtime Model
+## Local Run
 
-- Public API is served from Cloudflare Worker.
-- UI is served from Cloudflare Pages.
-- Postgres is hosted on Neon.
-- Scheduled data refresh runs via GitHub Actions:
-  - `backend/ingest.py` (Starlink from Space-Track)
-  - `backend/sync_spacex_assets.py` (SpaceX assets)
+### 1) Database
 
-## Important Security Note
+```bash
+psql "<DATABASE_URL>" -f backend/Schema.sql
+```
 
-If a database connection string was ever shared publicly, rotate it immediately in Neon and replace all secrets.
+### 2) Backend API + ingest jobs
 
-## 1) Neon Setup
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-1. Create a Neon project.
-2. Run schema:
-   - `psql "<NEON_DATABASE_URL>" -f backend/Schema.sql`
-3. Keep your connection URL as a secret only.
+Run data jobs when needed:
 
-## 2) Deploy Worker API (Cloudflare)
+```bash
+cd backend
+source .venv/bin/activate
+python ingest.py
+python sync_spacex_assets.py
+```
+
+### 3) Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 4) Worker (optional in local dev)
 
 ```bash
 cd worker
 npm install
-npx wrangler login
-npx wrangler secret put DATABASE_URL
-npx wrangler deploy
+npm run dev
 ```
 
-After deploy, note the Worker URL, for example:
-- `https://spacex-tracker-api.<account>.workers.dev`
+## Environment Variables (`.env`)
 
-### Worker routes implemented
+### `backend/.env`
+
+```env
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+SPACETRACK_USER=your_spacetrack_username
+SPACETRACK_PASS=your_spacetrack_password
+```
+
+
+
+### `worker/.dev.vars` (Wrangler local/dev secrets)
+
+```env
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+SPACETRACK_USER=your_spacetrack_username
+SPACETRACK_PASS=your_spacetrack_password
+```
+
+## Deployment
+
+Deploy the 3 parts independently:
+
+1. `frontend/` static build (`npm run build`).
+2. `worker/` edge API (`npx wrangler deploy`) if using Worker runtime.
+3. PostgreSQL instance with `backend/Schema.sql` applied.
+
+If you run scheduled refresh jobs in CI, provide:
+
+- `DATABASE_URL`
+- `SPACETRACK_USER`
+- `SPACETRACK_PASS`
+
+## API Endpoints
+
+### Worker API (`worker/src/index.ts`)
 
 - `GET /`
 - `GET /stats`
@@ -52,59 +98,56 @@ After deploy, note the Worker URL, for example:
 - `GET /spacex/rockets/stats`
 - `GET /spacex/boosters/intel`
 
-## 3) Deploy Frontend (Cloudflare Pages)
+### Backend API (`backend/main.py`)
 
-Build settings:
-- Framework preset: `Vite`
-- Root directory: `frontend`
-- Build command: `npm run build`
-- Build output directory: `dist`
+- `GET /`
+- `GET /satellites`
+- `GET /satellites/{norad_id}`
+- `GET /satellites/{norad_id}/history`
+- `GET /stats`
+- `GET /spacex/rockets/stats`
+- `GET /spacex/boosters/intel`
+- `GET /boosters`
+- `GET /boosters/{serial}`
+- `GET /capsules`
+- `GET /capsules/{serial}`
 
-Environment variable:
-- `VITE_API_URL=https://<your-worker-url>`
+## Scraping / Data Middleware
 
-## 4) GitHub Actions Secrets
+### Starlink ingest (`backend/ingest.py`)
 
-Set these in your GitHub repo settings:
+- Authenticates with Space-Track.
+- Pulls GP + SATCAT feeds.
+- Merges and normalizes orbit/status fields.
+- Writes satellites and altitude history into Postgres.
 
-- `DATABASE_URL`
-- `SPACETRACK_USER`
-- `SPACETRACK_PASS`
+Source site:
 
-## 5) Local Development
+- `https://www.space-track.org`
 
-### Frontend
+### SpaceX assets sync (`backend/sync_spacex_assets.py`)
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+- Scrapes embedded JSON from boosters and capsules pages.
+- Normalizes status/type/flight/landing fields.
+- Upserts into `spacex_boosters` and `spacex_capsules`.
 
-### Worker API (local)
+Source sites:
 
-```bash
-cd worker
-cp .dev.vars.example .dev.vars
-# edit .dev.vars with your local/Neon DATABASE_URL
-npm install
-npm run dev
-```
+- `https://spacexnow.com/boosters`
+- `https://spacexnow.com/capsules`
 
-### Python ingest/sync scripts
+### API-side enrichment (`backend/main.py` and `worker/src/index.ts`)
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python ingest.py
-python sync_spacex_assets.py
-```
+- Rocket/launch context pulls from SpaceX API and launch/news sources used by the API layer.
 
-## Current Deployment Recommendation
+Source sites/APIs used:
 
-- Frontend: Cloudflare Pages
-- Backend: Cloudflare Workers (`worker/`)
-- Database: Neon Postgres
-- Scheduled jobs: GitHub Actions
+- `https://api.spacexdata.com/v4`
+- `https://spacexnow.com/stats`
+- `https://www.spacex.com/launches/`
+- `https://fdo.rocketlaunch.live/json/launches/`
+
+### Github actions for daily ingest/ updating db
+
+- name: Sync SpaceX Assets
+- name: Ingest Starlink Data
