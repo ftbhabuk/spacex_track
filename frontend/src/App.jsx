@@ -100,7 +100,7 @@ export default function App() {
           <button className="logo logo-btn" onClick={() => setView("home")}>
             <span className="logo-icon">SX</span>
             <div>
-              <h1>SPACEX TRACKER </h1>
+              <h1 className="logo-title">SPACEX TRACKER </h1>
               <p className="tagline">Track  boosters, launches, Starlink, Dragon, and Starship context</p>
             </div>
           </button>
