@@ -2,6 +2,8 @@
 
 Track Starlink satellites, SpaceX launches, Falcon boosters, and Dragon capsules from one dashboard.
 
+![Dashboard Preview](Screenshots/image.png)
+
 ## Architecture
 
 | Directory | Stack | Purpose |
