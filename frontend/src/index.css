@@ -571,6 +571,26 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .dim { color: var(--text-dim); }
 .name-cell { color: #fff; font-weight: 500; }
 
+/* View More Button */
+.view-more-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: block;
+  width: fit-content;
+  margin: 16px auto;
+}
+.view-more-btn:hover {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.03);
+}
+
 .status-badge {
   display: inline-block; padding: 2px 8px; border-radius: 4px;
   font-size: 11px; font-family: var(--font-mono); font-weight: 700;

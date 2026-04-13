@@ -37,6 +37,7 @@ export default function BoosterDashboard({ data, loading }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [selected, setSelected] = useState(null);
+  const [showAll, setShowAll] = useState(false);
 
   const boosters = data?.boosters || [];
   const overall = data?.overall || {};
@@ -127,52 +128,72 @@ export default function BoosterDashboard({ data, loading }) {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="sat-table">
-          <thead>
-            <tr>
-              <th>Booster</th>
-              <th>Status</th>
-              <th>Missions</th>
-              <th>Reuse Count</th>
-              <th>Successful Landings</th>
-              <th>Landing Rate</th>
-              <th>Last Mission</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((b) => (
-              (() => {
-                const statusMeta = getBoosterStatusMeta(b);
+       <div className="table-wrap">
+         <table className="sat-table">
+           <thead>
+             <tr>
+               <th>Booster</th>
+               <th>Status</th>
+               <th>Missions</th>
+               <th>Reuse Count</th>
+               <th>Successful Landings</th>
+               <th>Landing Rate</th>
+               <th>Last Mission</th>
+             </tr>
+           </thead>
+           <tbody>
+             {filtered.slice(0, showAll ? undefined : 10).map((b) => (
+               (() => {
+                 const statusMeta = getBoosterStatusMeta(b);
 
-                return (
-                  <tr key={b.core_id} className="sat-row" onClick={() => setSelected(b)}>
-                    <td className="name-cell">
-                      <div className="booster-cell">
-                        {b.image_url && <img className="booster-thumb" src={b.image_url} alt={b.serial || "Booster"} loading="lazy" />}
-                        <div>
-                          <div>{b.display_name || b.serial || "Unknown"}</div>
-                          <div className="mono dim">{b.serial || "—"}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="status-badge" style={{ "--c": statusMeta.color }}>
-                        {statusMeta.label}
-                      </span>
-                    </td>
-                    <td className="mono">{b.mission_count}</td>
-                    <td className="mono">{b.reuse_count ?? 0}</td>
-                    <td className="mono">{successfulLandings(b)}</td>
-                    <td className="mono">{pct(b.landing_rate)}</td>
-                    <td className="mono dim">{b.recent_missions?.[0]?.mission_name || "—"}</td>
-                  </tr>
-                );
-              })()
-            ))}
-          </tbody>
-        </table>
-      </div>
+                 return (
+                   <tr key={b.core_id} className="sat-row" onClick={() => setSelected(b)}>
+                     <td className="name-cell">
+                       <div className="booster-cell">
+                         {/* {b.image_url && <img className="booster-thumb" src={b.image_url} alt={b.serial || "Booster"} loading="lazy" />} */}
+                         <div>
+                           <div>{b.display_name || b.serial || "Unknown"}</div>
+                           <div className="mono dim">{b.serial || "—"}</div>
+                         </div>
+                       </div>
+                     </td>
+                     <td>
+                       <span className="status-badge" style={{ "--c": statusMeta.color }}>
+                         {statusMeta.label}
+                       </span>
+                     </td>
+                     <td className="mono">{b.mission_count}</td>
+                     <td className="mono">{b.reuse_count ?? 0}</td>
+                     <td className="mono">{successfulLandings(b)}</td>
+                     <td className="mono">{pct(b.landing_rate)}</td>
+                     <td className="mono dim">{b.recent_missions?.[0]?.mission_name || "—"}</td>
+                   </tr>
+                 );
+               })()
+             ))}
+           </tbody>
+         </table>
+         {filtered.length > 10 && !showAll && (
+           <div className="table-footer">
+             <button 
+               className="view-more-btn" 
+               onClick={() => setShowAll(true)}
+             >
+               View More ({filtered.length - 10} more)
+             </button>
+           </div>
+         )}
+         {showAll && filtered.length > 10 && (
+           <div className="table-footer">
+             <button 
+               className="view-more-btn" 
+               onClick={() => setShowAll(false)}
+             >
+               Show Less
+             </button>
+           </div>
+         )}
+       </div>
 
       <div className="infra-grid">
         <section className="infra-panel">
