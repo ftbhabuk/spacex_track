@@ -38,7 +38,7 @@ const ROCKETLAUNCH_LIVE_API = "https://fdo.rocketlaunch.live/json/launches";
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
 const VEHICLE_IMAGES = {
-  falcon9: "https://wallpaperaccess.com/full/1094566.jpg",
+  falcon9: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/F9_and_Heavy_visu.png/1920px-F9_and_Heavy_visu.png",
   dragon: "https://wallpaperaccess.com/full/1094574.jpg",
   starship: "https://wallpaperaccess.com/full/1094611.jpg",
   starlink: "https://images.hdqwalls.com/download/starlink-fe-2048x2048.jpg",

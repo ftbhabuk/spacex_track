@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+const FALLBACK_IMAGE = "/spacex-fallback.svg";
 const DRAGON_BOOSTER_IMAGE = "https://wallpaperaccess.com/full/1094574.jpg";
 const HERO_SPACEX_IMAGE   = "https://wallpaperaccess.com/full/1094610.jpg";
 const STARLINK_IMAGE_WEB  = "https://images.hdqwalls.com/download/starlink-fe-2048x2048.jpg";
@@ -256,14 +257,18 @@ function CDUnit({ v, u }) {
 function SmartImage({ srcs, alt, className = "" }) {
   const filtered = (srcs || []).filter(Boolean);
   const [index, setIndex] = useState(0);
-  const current = filtered[index] || DRAGON_BOOSTER_IMAGE;
+  const current = filtered[index] || FALLBACK_IMAGE;
   return (
     <img
       className={className}
       src={current}
       alt={alt}
       loading="lazy"
-      onError={() => { if (index < filtered.length - 1) setIndex(index + 1); }}
+      onError={() => {
+        setIndex((currentIndex) => (
+          currentIndex < filtered.length ? currentIndex + 1 : currentIndex
+        ));
+      }}
     />
   );
 }

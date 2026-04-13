@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">SpaceX Tracker Fallback Artwork</title>
+  <desc id="desc">A stylized orbital scene used when remote images are unavailable.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07111f"/>
+      <stop offset="55%" stop-color="#0d1d33"/>
+      <stop offset="100%" stop-color="#1d3d5c"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9ed8ff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#9ed8ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1280" cy="160" r="84" fill="#d8ebff" opacity="0.9"/>
+  <g opacity="0.55" fill="#ffffff">
+    <circle cx="180" cy="130" r="2"/>
+    <circle cx="320" cy="90" r="2"/>
+    <circle cx="520" cy="220" r="3"/>
+    <circle cx="740" cy="110" r="2"/>
+    <circle cx="910" cy="250" r="2"/>
+    <circle cx="1080" cy="90" r="2"/>
+    <circle cx="1410" cy="260" r="3"/>
+    <circle cx="1460" cy="110" r="2"/>
+    <circle cx="250" cy="310" r="2"/>
+    <circle cx="600" cy="320" r="2"/>
+    <circle cx="1200" cy="320" r="2"/>
+  </g>
+  <ellipse cx="860" cy="780" rx="720" ry="170" fill="#10253f"/>
+  <ellipse cx="860" cy="750" rx="520" ry="110" fill="none" stroke="#7fd3ff" stroke-width="3" opacity="0.75"/>
+  <ellipse cx="860" cy="750" rx="360" ry="74" fill="none" stroke="#7fd3ff" stroke-width="2" opacity="0.45"/>
+  <path d="M610 690h410l48 78H562z" fill="#dce7f2"/>
+  <path d="M756 318h88l42 372h-172z" fill="#f6fbff"/>
+  <path d="M790 140l118 178H672z" fill="#ffffff"/>
+  <path d="M790 692l-42 88h84z" fill="#ff8a3d"/>
+  <path d="M790 732l-66 132h132z" fill="url(#glow)"/>
+  <path d="M640 438l84 44-10 54-96-34z" fill="#d2dfec"/>
+  <path d="M940 438l-84 44 10 54 96-34z" fill="#d2dfec"/>
+  <rect x="724" y="382" width="132" height="18" rx="9" fill="#8ebfe3" opacity="0.85"/>
+  <text x="120" y="760" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="8">SPACEX TRACKER</text>
+  <text x="124" y="815" fill="#9ed8ff" font-family="Arial, Helvetica, sans-serif" font-size="28" letter-spacing="5">LOCAL FALLBACK VISUAL</text>
+</svg>

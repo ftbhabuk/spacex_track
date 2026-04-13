@@ -8,7 +8,34 @@ import HomeLanding from "./components/HomeLanding";
 import LaunchesBoard from "./components/LaunchesBoard";
 import "./index.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const LOCAL_API = "http://localhost:8000";
+
+function resolveApiBase() {
+  const configuredApi = import.meta.env.VITE_API_URL?.trim();
+  if (configuredApi) {
+    return configuredApi.replace(/\/+$/, "");
+  }
+
+  if (import.meta.env.DEV) {
+    return LOCAL_API;
+  }
+
+  if (typeof window !== "undefined") {
+    return window.location.origin.replace(/\/+$/, "");
+  }
+
+  return LOCAL_API;
+}
+
+const API = resolveApiBase();
+
+async function fetchJson(path) {
+  const res = await fetch(`${API}${path}`);
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
 
 export default function App() {
   const [view, setView] = useState("home");
@@ -39,12 +66,11 @@ export default function App() {
         sort_by: sortBy,
         sort_dir: sortDir,
       });
-      const res = await fetch(`${API}/satellites?${params}`);
-      const json = await res.json();
+      const json = await fetchJson(`/satellites?${params}`);
       setSatellites(json.data || []);
       setTotal(json.total || 0);
     } catch (e) {
-      console.error("Failed to fetch satellites:", e);
+      console.error(`Failed to fetch satellites from ${API}:`, e);
     } finally {
       setLoading(false);
     }
@@ -52,20 +78,18 @@ export default function App() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/stats`);
-      setStats(await res.json());
+      setStats(await fetchJson("/stats"));
     } catch (e) {
-      console.error("Failed to fetch stats:", e);
+      console.error(`Failed to fetch stats from ${API}:`, e);
     }
   }, []);
 
   const fetchRocketStats = useCallback(async () => {
     setRocketLoading(true);
     try {
-      const res = await fetch(`${API}/spacex/rockets/stats`);
-      setRocketStats(await res.json());
+      setRocketStats(await fetchJson("/spacex/rockets/stats"));
     } catch (e) {
-      console.error("Failed to fetch SpaceX rocket stats:", e);
+      console.error(`Failed to fetch SpaceX rocket stats from ${API}:`, e);
       setRocketStats(null);
     } finally {
       setRocketLoading(false);
@@ -75,10 +99,9 @@ export default function App() {
   const fetchBoosterIntel = useCallback(async () => {
     setBoosterLoading(true);
     try {
-      const res = await fetch(`${API}/spacex/boosters/intel`);
-      setBoosterIntel(await res.json());
+      setBoosterIntel(await fetchJson("/spacex/boosters/intel"));
     } catch (e) {
-      console.error("Failed to fetch SpaceX booster intel:", e);
+      console.error(`Failed to fetch SpaceX booster intel from ${API}:`, e);
       setBoosterIntel(null);
     } finally {
       setBoosterLoading(false);

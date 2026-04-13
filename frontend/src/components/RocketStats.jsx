@@ -16,7 +16,7 @@ export default function RocketStats({ data, loading }) {
   const launchesListSource = data?.data_sources?.launches_list?.source || "unknown";
   const rocketsApi = data?.data_sources?.rockets_api;
   const rocketsStale = Boolean(rocketsApi?.is_stale);
-  const falconImage = data?.vehicle_images?.falcon9;
+  const falconImage = data?.vehicle_images?.falcon9 || "/spacex-fallback.svg";
   const FALCON_9_HERO_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/F9_and_Heavy_visu.png/1920px-F9_and_Heavy_visu.png";
 
   const cards = [
@@ -41,9 +41,13 @@ export default function RocketStats({ data, loading }) {
         <div className="hero-image-wrap">
         <img 
           className="hero-image" 
-          src={FALCON_9_HERO_IMAGE} 
+          src={falconImage || FALCON_9_HERO_IMAGE} 
           alt="Falcon 9" 
           loading="lazy" 
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = "/spacex-fallback.svg";
+          }}
           align="center"
           style={{
             width: "100%",

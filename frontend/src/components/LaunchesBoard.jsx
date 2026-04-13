@@ -2,6 +2,11 @@ function dateOnly(v) {
   return v ? v.slice(0, 10) : "—";
 }
 
+function handleImageFallback(event) {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = "/spacex-fallback.svg";
+}
+
 export default function LaunchesBoard({ data, loading }) {
   if (loading) return <div className="rocket-panel skeleton" />;
   if (!data) return <div className="rocket-panel">Launch data unavailable.</div>;
@@ -36,7 +41,13 @@ export default function LaunchesBoard({ data, loading }) {
             {upcoming.slice(0, 10).map((l) => (
               <div key={`${l.name}-${l.date_utc}-up`} className="infra-item">
                 {l.image_url && (
-                  <img className="launch-thumb" src={l.image_url} alt={l.name || "Launch"} loading="lazy" />
+                  <img
+                    className="launch-thumb"
+                    src={l.image_url}
+                    alt={l.name || "Launch"}
+                    loading="lazy"
+                    onError={handleImageFallback}
+                  />
                 )}
                 <div className="name-cell">{l.name}</div>
                 <div className="mono dim">{dateOnly(l.date_utc)} · {l.rocket_name || "Unknown rocket"}</div>
@@ -67,7 +78,13 @@ export default function LaunchesBoard({ data, loading }) {
             {recent.slice(0, 12).map((l) => (
               <div key={`${l.name}-${l.date_utc}-recent`} className="infra-item">
                 {l.image_url && (
-                  <img className="launch-thumb" src={l.image_url} alt={l.name || "Launch"} loading="lazy" />
+                  <img
+                    className="launch-thumb"
+                    src={l.image_url}
+                    alt={l.name || "Launch"}
+                    loading="lazy"
+                    onError={handleImageFallback}
+                  />
                 )}
                 <div className="name-cell">{l.name}</div>
                 <div className="mono dim">
