@@ -1013,7 +1013,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 12px;
-  background: #0a0a0a;
+  background:#ffffffd3
 }
 .hero-image {
   width: 100%;

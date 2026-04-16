@@ -6,7 +6,7 @@ const HERO_SPACEX_IMAGE   = "https://wallpaperaccess.com/full/1094610.jpg";
 const STARLINK_IMAGE_WEB  = "https://images.hdqwalls.com/download/starlink-fe-2048x2048.jpg";
 const FALCON_FLEET_IMAGE  = "https://wallpaperaccess.com/full/1094566.jpg";
 const STARSHIP_IMAGE_WEB  = "https://wallpaperaccess.com/full/1094611.jpg";
-const FALCON_9_IMAGE  = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/F9_and_Heavy_visu.png/1920px-F9_and_Heavy_visu.png";
+const FALCON_9_IMAGE      = "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/F9_and_Heavy_visu.png/1920px-F9_and_Heavy_visu.png";
 
 function num(v) { return v == null ? "—" : v.toLocaleString(); }
 function pct(v) { return v == null ? "—" : `${v}%`; }

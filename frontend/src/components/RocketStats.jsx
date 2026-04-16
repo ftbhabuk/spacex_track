@@ -41,7 +41,7 @@ export default function RocketStats({ data, loading }) {
         <div className="hero-image-wrap">
         <img 
           className="hero-image" 
-          src={falconImage || FALCON_9_HERO_IMAGE} 
+          src={ FALCON_9_HERO_IMAGE} 
           alt="Falcon 9" 
           loading="lazy" 
           onError={(event) => {
