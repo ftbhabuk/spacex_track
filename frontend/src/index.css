@@ -1011,8 +1011,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   font-size: 11px;
   font-family: var(--font-mono);
   color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Launch description */
@@ -1022,13 +1022,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   line-height: 1.5;
   margin-top: 6px;
 }
-.show-more-btn {
-  background: none;
-  border: none;
-  color: #8cb4ff;
-  cursor: pointer;
-  padding: 0 4px;
-  font-size: inherit;
+
+/* External link */
+.external-link {
+  color: #6fa8f5 !important;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 8px;
+}
+.external-link:hover {
+  text-decoration: underline;
 }
 .booster-cell {
   display: flex;
