@@ -608,14 +608,6 @@ function normalizeRocketLaunchLiveItem(item: Dict, kind: "next" | "previous"): L
       (typeof item.quicktext === "string" && item.quicktext.startsWith("http") ? item.quicktext : null) ||
       null;
   }
-  if (!imageUrl && vehicleName) {
-    const v = vehicleName.toLowerCase();
-    if (v.includes("falcon heavy")) imageUrl = VEHICLE_IMAGES.falconheavy;
-    else if (v.includes("falcon 9")) imageUrl = VEHICLE_IMAGES.falcon9;
-    else if (v.includes("dragon")) imageUrl = VEHICLE_IMAGES.dragon;
-    else if (v.includes("starship")) imageUrl = VEHICLE_IMAGES.starship;
-    else if (v.includes("starlink")) imageUrl = VEHICLE_IMAGES.starlink;
-  }
 
   const siteUrl =
     (typeof item.quicktext === "string" && item.quicktext.startsWith("http") && item.quicktext) ||
