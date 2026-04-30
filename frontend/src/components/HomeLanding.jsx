@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const FALLBACK_IMAGE = "/spacex-fallback.svg";
 const DRAGON_BOOSTER_IMAGE = "https://wallpaperaccess.com/full/1094574.jpg";
-const HERO_SPACEX_IMAGE   = "https://wallpaperaccess.com/full/1094610.jpg";
+const HERO_SPACEX_IMAGE   = "https://wallpaperaccess.com/full/1420557.jpg";
 const STARLINK_IMAGE_WEB  = "https://images.hdqwalls.com/download/starlink-fe-2048x2048.jpg";
 const FALCON_FLEET_IMAGE  = "https://wallpaperaccess.com/full/1094566.jpg";
 const STARSHIP_IMAGE_WEB  = "https://wallpaperaccess.com/full/1094611.jpg";
