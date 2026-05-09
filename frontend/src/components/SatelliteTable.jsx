@@ -41,20 +41,20 @@ export default function SatelliteTable({ satellites, loading, onSelect, selected
               className={`sat-row ${selected?.norad_id === sat.norad_id ? "selected" : ""}`}
               onClick={() => onSelect(sat)}
             >
-              <td className="mono dim">{sat.norad_id}</td>
-              <td className="name-cell">{sat.name}</td>
-              <td>
+              <td className="mono dim" data-label="NORAD ID">{sat.norad_id}</td>
+              <td className="name-cell" data-label="Name">{sat.name}</td>
+              <td data-label="Status">
                 <span className="status-badge" style={{ "--c": statusColor(sat.status) }}>
                   {sat.status ?? "unknown"}
                 </span>
               </td>
-              <td className="mono">{sat.altitude_km ?? "—"}</td>
-              <td className="mono">{sat.apogee_km ?? "—"}</td>
-              <td className="mono">{sat.perigee_km ?? "—"}</td>
-              <td className="mono">{sat.inclination ?? "—"}</td>
-              <td className="mono">{sat.period_min ?? "—"}</td>
-              <td className="mono dim">{sat.launch_date ? sat.launch_date.slice(0, 10) : "—"}</td>
-              <td className="mono dim">{sat.shell || "—"}</td>
+              <td className="mono" data-label="Altitude (km)">{sat.altitude_km ?? "—"}</td>
+              <td className="mono" data-label="Apogee (km)">{sat.apogee_km ?? "—"}</td>
+              <td className="mono" data-label="Perigee (km)">{sat.perigee_km ?? "—"}</td>
+              <td className="mono" data-label="Inclination (°)">{sat.inclination ?? "—"}</td>
+              <td className="mono" data-label="Period (min)">{sat.period_min ?? "—"}</td>
+              <td className="mono dim" data-label="Launch Date">{sat.launch_date ? sat.launch_date.slice(0, 10) : "—"}</td>
+              <td className="mono dim" data-label="Shell">{sat.shell || "—"}</td>
             </tr>
           ))}
         </tbody>

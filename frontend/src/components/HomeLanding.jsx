@@ -216,12 +216,12 @@ export default function HomeLanding({
               <div className="starter-z-metric-row">
                 <div className="starter-z-metric mono">{item.metric}</div>
                 {item.metricHref && (
-                  <a className="panel-link-btn mono" href={item.metricHref} target="_blank" rel="noreferrer">
+                  <a className="cta-btn panel-link-btn mono" href={item.metricHref} target="_blank" rel="noreferrer">
                     {item.metricActionLabel}
                   </a>
                 )}
                 {item.metricAction && (
-                  <button className="panel-link-btn mono" onClick={item.metricAction}>
+                  <button className="cta-btn panel-link-btn mono" onClick={item.metricAction}>
                     {item.metricActionLabel}
                   </button>
                 )}
@@ -233,7 +233,7 @@ export default function HomeLanding({
               </div>
               {item.action && (
                 <div style={{ marginTop: 6 }}>
-                  <button className="ghost-btn" onClick={item.action}>{item.actionLabel}</button>
+                  <button className="cta-btn" onClick={item.action}>{item.actionLabel}</button>
                 </div>
               )}
             </div>

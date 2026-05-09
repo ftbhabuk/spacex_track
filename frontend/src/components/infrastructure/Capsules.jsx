@@ -62,9 +62,15 @@ function Capsules({ data }) {
                   </span>
                 </div>
               </div>
-              <div className="mono">
-                Missions: {capsule.missions_reported ?? "—"} · 
-                Reuses: {capsule.reuses_reported ?? "—"}
+              <div className="capsule-stats mono">
+                <div className="capsule-stat">
+                  <span className="capsule-stat-label">Missions</span>
+                  <span>{capsule.missions_reported ?? "—"}</span>
+                </div>
+                <div className="capsule-stat">
+                  <span className="capsule-stat-label">Reuses</span>
+                  <span>{capsule.reuses_reported ?? "—"}</span>
+                </div>
               </div>
             </div>
           ))}

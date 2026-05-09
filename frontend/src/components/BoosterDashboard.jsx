@@ -151,7 +151,7 @@ export default function BoosterDashboard({ data, loading }) {
 
                  return (
                    <tr key={b.core_id} className="sat-row" onClick={() => setSelected(b)}>
-                     <td className="name-cell">
+                     <td className="name-cell" data-label="Booster">
                        <div className="booster-cell">
                          {/* {b.image_url && <img className="booster-thumb" src={b.image_url} alt={b.serial || "Booster"} loading="lazy" />} */}
                          <div>
@@ -160,16 +160,16 @@ export default function BoosterDashboard({ data, loading }) {
                          </div>
                        </div>
                      </td>
-                     <td>
+                     <td data-label="Status">
                        <span className="status-badge" style={{ "--c": statusMeta.color }}>
                          {statusMeta.label}
                        </span>
                      </td>
-                     <td className="mono">{b.mission_count}</td>
-                     <td className="mono">{b.reuse_count ?? 0}</td>
-                     <td className="mono">{successfulLandings(b)}</td>
-                     <td className="mono">{pct(b.landing_rate)}</td>
-                     <td className="mono dim">{b.recent_missions?.[0]?.mission_name || "—"}</td>
+                     <td className="mono" data-label="Missions">{b.mission_count}</td>
+                     <td className="mono" data-label="Reuse Count">{b.reuse_count ?? 0}</td>
+                     <td className="mono" data-label="Successful Landings">{successfulLandings(b)}</td>
+                     <td className="mono" data-label="Landing Rate">{pct(b.landing_rate)}</td>
+                     <td className="mono dim" data-label="Last Mission">{b.recent_missions?.[0]?.mission_name || "—"}</td>
                    </tr>
                  );
                })()

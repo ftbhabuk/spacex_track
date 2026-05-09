@@ -23,6 +23,9 @@ export default function SatelliteDetail({ satellite: sat, apiBase, onClose }) {
   return (
     <div className="detail-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="detail-panel">
+        <button className="detail-mobile-close" onClick={onClose} aria-label="Close satellite details">
+          Close
+        </button>
         <div className="detail-header">
           <div>
             <div className="detail-title">{sat.name}</div>

@@ -110,22 +110,22 @@ function LandingZoneTable({ data }) {
           <tbody>
             {landingZones.map((zone) => (
               <tr key={zone.zone}>
-                <td>{zone.zone}</td>
-                <td>{zone.status}</td>
-                <td>{zone.firstLanding}</td>
-                <td>{zone.lastLanding}</td>
-                <td>{zone.totalLandings}</td>
-                <td>{zone.notableUse}</td>
+                <td data-label="Landing Zone">{zone.zone}</td>
+                <td data-label="Status">{zone.status}</td>
+                <td data-label="First Landing">{zone.firstLanding}</td>
+                <td data-label="Last Landing">{zone.lastLanding}</td>
+                <td data-label="Total Landings">{zone.totalLandings}</td>
+                <td data-label="Notable Use">{zone.notableUse}</td>
               </tr>
             ))}
             {newLandingZones.map((zone) => (
               <tr key={zone.zone} className="under-construction">
-                <td>{zone.zone}</td>
-                <td>{zone.status}</td>
-                <td>{zone.firstLanding}</td>
-                <td>{zone.lastLanding}</td>
-                <td>{zone.totalLandings}</td>
-                <td>{zone.notableUse}</td>
+                <td data-label="Landing Zone">{zone.zone}</td>
+                <td data-label="Status">{zone.status}</td>
+                <td data-label="First Landing">{zone.firstLanding}</td>
+                <td data-label="Last Landing">{zone.lastLanding}</td>
+                <td data-label="Total Landings">{zone.totalLandings}</td>
+                <td data-label="Notable Use">{zone.notableUse}</td>
               </tr>
             ))}
           </tbody>

@@ -78,9 +78,9 @@ function DroneShipTable({ data }) {
           <tbody>
             {droneShips.map((ship) => (
               <tr key={ship.vessel}>
-                <td>{ship.vessel}</td>
-                <td>{ship.homePort}</td>
-                <td>
+                <td data-label="Vessel">{ship.vessel}</td>
+                <td data-label="Home Port">{ship.homePort}</td>
+                <td data-label="Status">
                   <span 
                     className={`status-badge ${ship.status.toLowerCase()}`}
                     style={{ 

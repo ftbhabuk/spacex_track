@@ -39,6 +39,7 @@ async function fetchJson(path) {
 
 export default function App() {
   const [view, setView] = useState("home");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [satellites, setSatellites] = useState([]);
   const [stats, setStats] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -116,45 +117,76 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [fetchSatellites, search]);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [view]);
+
+  const openView = (nextView) => {
+    setView(nextView);
+    setMobileNavOpen(false);
+  };
+
   return (
     <div className="app">
       <header className="header">
         <div className="header-inner">
-          <button className="logo logo-btn" onClick={() => setView("home")}>
-            <span className="logo-icon">SX</span>
+          <button className="logo logo-btn" onClick={() => openView("home")}>
             <div>
               <h1 className="logo-title">SPACEX TRACKER </h1>
-              {/* <p className="tagline">Track  boosters, launches, Starlink, Dragon, and Starship context</p> */}
             </div>
           </button>
-          <div className="header-meta">
+
+          <button
+            className={`mobile-nav-toggle ${mobileNavOpen ? "active" : ""}`}
+            type="button"
+            aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="site-navigation"
+            onClick={() => setMobileNavOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+
+          <div
+            id="site-navigation"
+            className={`header-meta ${mobileNavOpen ? "open" : ""}`}
+          >
             <button
               className={`nav-btn ${view === "home" ? "active" : ""}`}
-              onClick={() => setView("home")}
+              onClick={() => openView("home")}
             >
               Home
             </button>
             <button
               className={`nav-btn ${view === "boosters" ? "active" : ""}`}
-              onClick={() => setView("boosters")}
+              onClick={() => openView("boosters")}
             >
               Boosters
             </button>
             <button
               className={`nav-btn ${view === "launches" ? "active" : ""}`}
-              onClick={() => setView("launches")}
+              onClick={() => openView("launches")}
             >
               Launches
             </button>
             <button
               className={`nav-btn ${view === "starlink" ? "active" : ""}`}
-              onClick={() => setView("starlink")}
+              onClick={() => openView("starlink")}
             >
               Starlink
             </button>
           </div>
         </div>
       </header>
+
+      <button
+        type="button"
+        className={`mobile-nav-backdrop ${mobileNavOpen ? "open" : ""}`}
+        aria-label="Close navigation menu"
+        onClick={() => setMobileNavOpen(false)}
+      />
 
       <main className="main">
         {view === "home" && (
