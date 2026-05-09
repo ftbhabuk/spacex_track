@@ -13,7 +13,7 @@ SpaceX Tracker SX is a personal tracking dashboard backed by a small data pipeli
 - a Cloudflare Worker API for production delivery
 - a PostgreSQL schema shared across the whole system
 
-## What You Can Explore
+## Explore Here
 
 ### Starlink
 
@@ -39,27 +39,6 @@ SpaceX Tracker SX is a personal tracking dashboard backed by a small data pipeli
 - track landing zones and autonomous drone ships alongside the booster fleet
 - keep recovery infrastructure in the same operational picture as the vehicles that depend on it
 
-## Why I Built It
-
-I like following SpaceX closely, but most sources only give part of the view. One place has launch schedules. Another has satellite data. Another has booster history. Useful on their own, but fragmented.
-
-It brings together:
-
-- Starlink satellite catalog and orbital history
-- Falcon launch and landing performance
-- booster-level reuse and mission history
-- Dragon capsule status
-- recovery infrastructure and current launch activity
-
-The goal was simple: build something that makes the overall state of the program easier to see at a glance.
-
-## Highlights
-
-- one dashboard for Starlink, launches, boosters, capsules, landing zones, and drone ships
-- local development API in Python and production API at the edge with Cloudflare Workers
-- Postgres-backed data model shared across frontend, backend, and worker
-- scheduled ingestion for both Starlink catalog data and SpaceX asset sync
-- focused on readable operational context, not just raw tables
 
 ## Architecture
 
