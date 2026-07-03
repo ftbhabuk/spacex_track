@@ -157,6 +157,18 @@ body {
 .stat-card:hover { border-color: var(--border-2); }
 .stat-card.highlight { border-color: rgba(255,255,255,0.24); background: rgba(255,255,255,0.02); }
 .stat-icon { font-size: 18px; opacity: 0.6; }
+.stat-icon--active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 0;
+  opacity: 1;
+  color: var(--green);
+}
+.stat-icon--active svg { display: block; }
 .stat-value { font-family: var(--font-mono); font-size: 20px; color: #fff; font-weight: 700; line-height: 1; }
 .stat-label { font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; margin-top: 3px; }
 
