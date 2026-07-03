@@ -2,7 +2,30 @@
 
 A multi-surface SpaceX dashboard for following Starlink satellites, Falcon booster reuse, Dragon capsules, launch activity, and recovery infrastructure from one place.
 
-https://github.com/user-attachments/assets/b16dcfcf-9b2b-4d32-a72c-1219decd4f1e
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="Screenshots/260703_20h57m32s_screenshot.png" alt="Home dashboard" width="100%"/>
+      <br/><sub>Home</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="Screenshots/260703_20h58m08s_screenshot.png" alt="Falcon boosters" width="100%"/>
+      <br/><sub>Boosters</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="Screenshots/260703_20h58m41s_screenshot.png" alt="Launches timeline" width="100%"/>
+      <br/><sub>Launches</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="Screenshots/260703_20h59m07s_screenshot.png" alt="Starlink satellites" width="100%"/>
+      <br/><sub>Starlink</sub>
+    </td>
+  </tr>
+</table>
+
+*Live view of Starlink constellation health, booster reuse stats, launch cadence, and recovery ops.*
 
 ## What This Project Is
 
